@@ -1,7 +1,7 @@
 /*************************************************************************
 	> Date:   2020-12-08
 	> Author: liangjun
-	> Desc:   鏃堕棿
+	> Desc:   时锟斤拷
 *************************************************************************/
 #include <string.h>
 #include "datetime.h"
@@ -35,7 +35,7 @@ static const char *am_pm[2] = {
   "AM", "PM"
 };
 
-static const char *WEEKDAY[7] = {"星期天", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+static const char *WEEKDAY[7] = {"Sunday", "Monday", "Tuesday", "Wednesday","Thursday", "Friday", "Saturday"};
 
 static int conv_num(const char **buf, int *dest, int llim, int ulim)
 {
@@ -368,6 +368,18 @@ int64_t CTime::getTodayEndTime()
 int32_t CTime::getTodayLeftSecond()
 {
     return (int32_t)(getTodayEndTime() - time(NULL));
+}
+
+std::string CTime::getGmtTime() {
+	time_t now = time(NULL);
+	struct tm* gmt = gmtime(&now);
+
+	const char* fmt = "%a, %d %b %Y %H:%M:%S GMT";
+	char tstr[30];
+
+	strftime(tstr, sizeof(tstr), fmt, gmt);
+
+	return tstr;
 }
 
 CDuration::CDuration(uint32_t nDay, uint32_t nHour, uint32_t nMinute, uint32_t nSecond)

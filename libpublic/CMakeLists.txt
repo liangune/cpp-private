@@ -62,6 +62,7 @@ endfunction()
 # 获取目录全部源文件, 不遍历子目录
 file(GLOB ALL_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.c
     ${CMAKE_CURRENT_SOURCE_DIR}/workpool/*.cpp
 )
 

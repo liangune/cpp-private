@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\curlwrap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\datetime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\rand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\stdStrUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\timeTicker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\uuid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\workpool\worker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\workpool\workerPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\liangjun\cpp\trunklw\Common\Component\libpublic\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{3A45D0CD-F70F-33D1-A81C-9D24FD4F9019}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -34,6 +34,8 @@ public:
 	static int64_t getTodayEndTime();
 	// 获取当天剩余时间（s）
 	static int32_t getTodayLeftSecond();
+    // 获取当前时间的GMT时间
+    static std::string getGmtTime();
 };
 
 class CDuration

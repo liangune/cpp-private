@@ -94,6 +94,9 @@ private:
     std::condition_variable m_condWrite;
 };
 
+#ifdef READ_WRITE_LOCK_CONFLICT
+namespace rwlock {
+#endif
 template<typename _RWMutex>
 class ReadLock
 {
@@ -127,5 +130,8 @@ public:
 private:
     _RWMutex * m_pmtx = nullptr;
 };
+#ifdef READ_WRITE_LOCK_CONFLICT
+}
+#endif
 
 #endif // !_RW_MUTEX_H_

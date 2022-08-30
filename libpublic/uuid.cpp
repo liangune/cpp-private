@@ -37,7 +37,7 @@ std::string CUUID::generateUUID()
 
 std::string CUUID::generateStdUUID()
 {
-    char buf[UUID_LENGTH+1] = {0};
+    char buf[UUID_LENGTH+5] = {0};
     
 #ifdef _MSC_VER
     GUID guid;

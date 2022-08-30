@@ -50,30 +50,32 @@ int main(int argc, const char** argv) {
     p->SetValue(str);
     queue.push(p);
 
-    //auto p1 = queue.pop();
-    std::shared_ptr<TaskExample> p1 = std::make_shared<TaskExample> ();
-    std::cout << "=====" << std::endl;
-    queue.tryPop(p1);
-    //p1->execute();
+    std::cout << "==== task1 p1 ====" << std::endl;
+    auto p1 = std::move(queue.pop());
+    p1->Execute(NULL);
 
     std::shared_ptr<TaskExample> p2 = std::make_shared<TaskExample> ();
+    std::cout << "==== task1 p2 ====" << std::endl;
+    queue.tryPop(p2);
+    p2->Execute(NULL);
+
+
+    std::shared_ptr<TaskExample> p3 = std::make_shared<TaskExample> ();
     std::string str2 = "test task2";
-    p2->SetValue(str2);
+    p3->SetValue(str2);
 
-    //Worker *worker = new Worker();
-    //worker->start();
-    //worker->addTask(p2);
 
-    std::string str3 = "test task3";
-    // p2->setValue(str3);
-    // worker->addTask(p2);
     std::cout << "=====" << std::endl;
     WorkerPool *workerpool = new WorkerPool();
-    workerpool->Init(new WorkerFactory<IWORKER_INSTANCE>(), 1, nullptr);
+    workerpool->Init(new WorkerFactory<IWORKER_INSTANCE>(), 3, nullptr);
     workerpool->Start();
+    
     workerpool->AddTask(p1);
     workerpool->AddTask(p2);
+    workerpool->AddTask(p3);
 
-    while(1) {}
+    while(1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     return 0;
 }

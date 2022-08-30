@@ -7,7 +7,6 @@
 #include <thread> 
 #include "worker.h"
 #include "typedef.h"
-#include <iostream>
 
 Worker::Worker()
 {
@@ -26,7 +25,6 @@ void Worker::Run()
     while (m_isEnable.load())
     {
         Handle();
-        std::this_thread::sleep_for(std::chrono::milliseconds(THREAD_SLEEP_INTERVAL));
     }
 
     m_isClosed.store(true);
@@ -34,13 +32,8 @@ void Worker::Run()
 
 void Worker::Handle()
 {
-    while(!IsQueueEmpty() && m_isEnable.load()) {
-        ShareptrTask ptrTask;
-        bool isRet = m_queue.tryPop(ptrTask);
-        if(isRet) {
-            ptrTask->Execute(this);
-        }
-    }
+    ShareptrTask ptrTask = std::move(m_queue.pop());
+    ptrTask->Execute(this);
 }
 
 void Worker::AddTask(ShareptrTask pTask)
@@ -58,11 +51,6 @@ void Worker::Start()
 void Worker::Stop()
 {
     m_isEnable.store(false);
-    if(m_isClosed.load()) {
-        while(!IsQueueEmpty()) {
-            m_queue.pop();
-        }
-    }
 }
 
 void Worker::SetIndex(uint32_t nIndex)

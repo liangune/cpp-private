@@ -133,10 +133,6 @@ elseif(UNIX)
     )
 endif()
 
-set(LINK_LIBS_DIR
-    ${COMPONENT}/lib/${PLATFORM}/${ARCHITECTURE}/dynamic
-)
-
 # 链接库路径
 link_directories(${LINK_LIBS_DIR})
 
