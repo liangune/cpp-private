@@ -1,3 +1,0 @@
-D:/liangjun/cpp/trunklw/Common/Component/libpublic/../../Depend/lib/windows/x86/dynamic/libpublic/libpublic.dll
-D:/liangjun/cpp/trunklw/Common/Component/libpublic/../../Depend/lib/windows/x86/dynamic/libpublic/libpublic.lib
-D:/liangjun/cpp/trunklw/Common/Component/libpublic/../../Depend/lib/windows/x86/dynamic/libpublic/libpublic.pdb
