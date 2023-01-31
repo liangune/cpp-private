@@ -33,6 +33,7 @@ public:
     uint32_t GetIndex();
     
     bool IsQueueEmpty();
+    size_t GetQueueSize();
 
     void SetHandle(HandleInterface *handPtr);
     HandleInterface *GetHandle();

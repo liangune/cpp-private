@@ -1,7 +1,7 @@
 /*************************************************************************
 	> Date:   2020-12-08
 	> Author: liangjun
-	> Desc:   ʱ��
+	> Desc:   时间
 *************************************************************************/
 #include <string.h>
 #include "datetime.h"
@@ -439,6 +439,12 @@ CDatetime::CDatetime(const time_t nTime)
     m_TimesMillisec = m_TimeSec * 1000;
 }
 
+CDatetime::CDatetime(const CDatetime &right) 
+{
+    m_TimeSec = right.m_TimeSec;
+    m_TimesMillisec = right.m_TimesMillisec;
+}
+
 int CDatetime::getYear() const
 {
     struct tm *ptm = localtime(&m_TimeSec);
@@ -467,21 +473,18 @@ int CDatetime::getHour() const
     return ptm->tm_hour;  
 }
 
-int CDatetime::getMin() const
+int CDatetime::getMinute() const
 {
     struct tm *ptm = localtime(&m_TimeSec);
 
     return ptm->tm_min;
 }
 
-time_t CDatetime::getSec() const
+int CDatetime::getSecond() const
 {
-    return m_TimeSec;
-}
+    struct tm *ptm = localtime(&m_TimeSec);
 
-long long CDatetime::getMillisecond() const
-{
-    return m_TimesMillisec;
+    return ptm->tm_sec;
 }
 
 int CDatetime::getYday() const
@@ -507,6 +510,20 @@ std::string CDatetime::getWeekday() const
     return WEEKDAY[tm_wday];
 }
 
+int CDatetime::getWeekOfYear() const
+{
+    struct tm *ptm = localtime(&m_TimeSec);
+    int tm_wday = ptm->tm_wday;
+    int tm_yday = ptm->tm_yday;
+
+    // 本年1月1日是周几
+    int baseWeekDay = 7 - (tm_yday + 1 - (tm_wday + 1)) % 7; 
+    if (baseWeekDay == 7)
+        baseWeekDay = 0; //0代表周日, 一周的开始
+    // 本周是一年的第几周
+    return (baseWeekDay + tm_yday) / 7 + 1;
+}
+
 std::string CDatetime::getStrTime(const char *format) const
 {
 	struct tm *lt;
@@ -516,14 +533,14 @@ std::string CDatetime::getStrTime(const char *format) const
 	return nowtime;
 }
 
-time_t CDatetime::operator-(const CDatetime &Right)
+time_t CDatetime::operator-(const CDatetime &right)
 {
-    return this->m_TimesMillisec - Right.m_TimesMillisec;
+    return this->m_TimesMillisec - right.m_TimesMillisec;
 }
 
-bool CDatetime::operator==(const CDatetime &Right)
+bool CDatetime::operator==(const CDatetime &right)
 {
-    return this->m_TimesMillisec == Right.m_TimesMillisec;
+    return this->m_TimesMillisec == right.m_TimesMillisec;
 }
 
 CDatetime& CDatetime::operator=(CDatetime &t)
@@ -547,14 +564,16 @@ CDatetime& CDatetime::operator=(time_t nSec)
 
 CDatetime CDatetime::operator-(CDuration &duration)
 {
-    *this -= duration;
-    return *this;
+    CDatetime tmp(*this);
+    tmp -= duration;
+    return tmp;
 }
 
 CDatetime CDatetime::operator+(CDuration &duration)
 {
-    *this += duration;
-    return *this;
+    CDatetime tmp(*this);
+    tmp += duration;
+    return tmp;
 }
 
 CDatetime CDatetime::add(CDuration &duration)
@@ -618,7 +637,28 @@ int CDatetime::getCurTimePassSec()
     return hour * 3600 + minute * 60 + second;
 }
 
+time_t CDatetime::getSec() const
+{
+    return m_TimeSec;
+}
+
+long long CDatetime::getMillisecond() const
+{
+    return m_TimesMillisec;
+}
+
 void CDatetime::setSec(time_t nSec)
+{
+    m_TimeSec = nSec;
+
+    m_TimesMillisec = m_TimeSec * 1000;
+}
+
+time_t CDatetime::getTimestamp() const
+{
+    return m_TimeSec;
+}
+void CDatetime::setTimestamp(time_t nSec)
 {
     m_TimeSec = nSec;
 

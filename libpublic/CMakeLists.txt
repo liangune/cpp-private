@@ -147,7 +147,8 @@ link_directories(${LINK_LIBS_DIR})
 
 SET(LIBRARY_OUTPUT_PATH_PREFIX ${COMPONENT})
 set(INCLUDE_OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/include)
-set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_NAME})
+set(PROJECT_DIR libpublic)
+set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_DIR})
 
 #--------------------------------------------------------------------
 #-------------------------------Compile------------------------------

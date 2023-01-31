@@ -68,6 +68,11 @@ bool Worker::IsQueueEmpty()
     return m_queue.empty();
 }
 
+size_t Worker::GetQueueSize()
+{
+    return m_queue.size();
+}
+
 void Worker::SetHandle(HandleInterface *handPtr)
 {
     m_pHandle = handPtr;
