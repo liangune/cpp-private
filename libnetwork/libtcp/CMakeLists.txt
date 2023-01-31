@@ -118,18 +118,21 @@ if(MSVC)
 
     # 静态库
     set(LINK_ARCHIVES
-       ws2_32 ${LINK_ARCHIVES_DIR}/libevent/libevent.lib ${LINK_ARCHIVES_DIR}/libevent/libevent_core.lib
+       ws2_32 
+       ${LINK_ARCHIVES_DIR}/libevent/libevent.lib 
+       ${LINK_ARCHIVES_DIR}/libevent/libevent_core.lib
     )
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-        pthread 
-        ${LINK_LIBS_DIR}/zlog
+        pthread
     )
 
     # 静态库
     set(LINK_ARCHIVES
-        ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent.a ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent_core.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent.a 
+        ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent_core.a
+        ${LINK_ARCHIVES_DIR}/zlog/libzlog.a
     )
 endif()
 
@@ -141,7 +144,8 @@ link_directories(${LINK_LIBS_DIR})
 
 SET(LIBRARY_OUTPUT_PATH_PREFIX ${COMPONENT})
 set(INCLUDE_OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/include)
-set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_NAME})
+set(PROJECT_DIR libtcp)
+set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/libnetwork/${PROJECT_DIR})
 
 #--------------------------------------------------------------------
 #-------------------------------Compile------------------------------

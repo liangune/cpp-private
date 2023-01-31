@@ -127,7 +127,7 @@ elseif(UNIX)
 
     # 静态库
     set(LINK_ARCHIVES
-        ${LINK_ARCHIVES_DIR}/libpq.a
+        ${LINK_ARCHIVES_DIR}/libpq/libpq.a
     )
 endif()
 
@@ -143,7 +143,8 @@ link_directories(${LINK_LIBS_DIR})
 
 SET(LIBRARY_OUTPUT_PATH_PREFIX ${COMPONENT})
 set(INCLUDE_OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/include)
-set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_NAME})
+set(PROJECT_DIR libdb)
+set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_DIR})
 
 #--------------------------------------------------------------------
 #-------------------------------Compile------------------------------
@@ -192,7 +193,6 @@ file(GLOB CURRENT_INCLUDE
 
 add_custom_target(copy)
 
-set(PROJECT_DIR libdb)
 if(NOT EXISTS ${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR})
     #make_directory("${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}")
     file(MAKE_DIRECTORY "${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}")

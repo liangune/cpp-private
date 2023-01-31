@@ -11,6 +11,10 @@
 #pragma comment(lib,"MSWSOCK.lib")
 #pragma comment(lib,"ws2_32.lib") 
 #pragma comment(lib,"kernel32.lib")
+#else 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #endif
 
 namespace workflowhttp {

@@ -95,6 +95,7 @@ endif()
 #--------------------------------Link-------------------------------
 set(LINK_ARCHIVES_DIR ${COMPONENT}/lib/${PLATFORM}/${ARCHITECTURE}/static)
 set(LINK_LIBS_DIR ${COMPONENT}/lib/${PLATFORM}/${ARCHITECTURE}/dynamic)
+set(LINK_LIBS_DIR_LINUX ~/gosunlibs)
 if(MSVC)
     # 动态库
     set(LINK_LIBS 
@@ -109,12 +110,14 @@ if(MSVC)
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-        
+        ${LINK_LIBS_DIR_LINUX}/openssl-1_1/libcrypto.so
+        ${LINK_LIBS_DIR_LINUX}/openssl-1_1/libssl.so
+	    pthread
     )
 
     # 静态库
     set(LINK_ARCHIVES
-       
+        ${LINK_ARCHIVES_DIR}/libnetwork/workflow/libworkflow.a
     )
 endif()
 

@@ -11,8 +11,9 @@
 #include <stdint.h>
 #include "urlParser.h"
 #include "error.h"
+#include "workflow/RWLock.h"
 
-class RWLock;
+//class RWLock;
 
 namespace workflowhttp {
 class Context;

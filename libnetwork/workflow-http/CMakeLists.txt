@@ -122,12 +122,13 @@ if(MSVC)
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-        
+        ${LINK_LIBS_DIR}/openssl-1_1/libcrypto.so.1.1
+        ${LINK_LIBS_DIR}/openssl-1_1/libssl.so.1.1
     )
 
     # 静态库
     set(LINK_ARCHIVES
-       
+        ${LINK_ARCHIVES_DIR}/libnetwork/workflow/libworkflow.a
     )
 endif()
 
