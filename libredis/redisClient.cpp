@@ -628,6 +628,25 @@ redis_integer_t CRedisClient::hincrby(const string_t &key, const string_t &field
 	return 0;
 }
 
+redis_integer_t CRedisClient::hscan(const string_t &key, redis_integer_t cursor, redis_integer_t count, redis_map_t &mapOut)
+{
+	mapOut.clear();
+	redis_integer_t replyCursor = 0;
+	if( this->query(REDIS_REPLY_ARRAY, "HSCAN %s %lld COUNT %lld", C_STR(key), cursor, count) )
+	{
+		if (m_reply->elements != 2)
+			return replyCursor;
+
+		replyCursor = atoll(m_reply->element[0]->str);
+		for(size_t i=0; i<m_reply->element[1]->elements; ++i)
+		{
+			mapOut[m_reply->element[1]->element[i]->str] = m_reply->element[1]->element[i+1]->str;
+			++i;
+		}
+	}
+	return replyCursor;	
+}
+
 //////////////// list ////////////////
 redis_array_t CRedisClient::lrange(const string_t &key, int iBeg, int iEnd)
 {

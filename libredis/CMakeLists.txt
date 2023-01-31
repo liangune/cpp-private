@@ -165,7 +165,8 @@ link_directories(${LINK_LIBS_DIR})
 
 SET(LIBRARY_OUTPUT_PATH_PREFIX ${COMPONENT})
 set(INCLUDE_OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/include)
-set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_NAME})
+set(PROJECT_DIR libredis)
+set(OUTPUT_DIR ${LIBRARY_OUTPUT_PATH_PREFIX}/lib/${PLATFORM}/${ARCHITECTURE}/${BUILD_LIB_TYPE}/${PROJECT_DIR})
 
 #--------------------------------------------------------------------
 #-------------------------------Compile------------------------------
@@ -216,7 +217,6 @@ file(GLOB HIREDIS_INCLUDE
 
 add_custom_target(copy)
 
-set(PROJECT_DIR libredis)
 if(NOT EXISTS ${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR})
     file(MAKE_DIRECTORY "${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}")
     file(MAKE_DIRECTORY "${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}/hiredis")

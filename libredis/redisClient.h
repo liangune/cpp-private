@@ -84,6 +84,7 @@ class CRedisClient
 	bool hgetall(const string_t &key, redis_desc_map_int_str_t &mapOut);
 	redis_integer_t hincrby(const string_t &key, const string_t &field, redis_integer_t nIncr = 1);
 	redis_integer_t hlen(const string_t &key);
+	redis_integer_t hscan(const string_t &key, redis_integer_t cursor, redis_integer_t count, redis_map_t &mapOut);
 
 	// list
 	redis_array_t lrange(const string_t &key, int iBeg = 0, int iEnd = -1);
