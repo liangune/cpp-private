@@ -354,7 +354,13 @@ literal:
 int64_t CTime::getTodayBeginTime()
 {
     time_t now = time(NULL);
+#ifdef _MSC_VER	
     struct tm today = *localtime(&now);
+#else
+    struct tm today = { 0 };
+    localtime_r(&now, &today);
+#endif
+
     today.tm_hour = 0; today.tm_min = 0; today.tm_sec = 0;
 
     return mktime(&today);
@@ -447,64 +453,110 @@ CDatetime::CDatetime(const CDatetime &right)
 
 int CDatetime::getYear() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
     return ptm->tm_year + 1900;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_year + 1900;
+#endif    
 }
 
 int CDatetime::getMonth() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
-    return ptm->tm_mon + 1;  
+    return ptm->tm_mon + 1; 
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_mon + 1; 
+#endif
 }
 
 int CDatetime::getDay() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
-    return ptm->tm_mday;  
+    return ptm->tm_mday;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_mday;
+#endif
 }
 
 int CDatetime::getHour() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
-    return ptm->tm_hour;  
+    return ptm->tm_hour;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_hour; 
+#endif 
 }
 
 int CDatetime::getMinute() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
     return ptm->tm_min;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_min;
+#endif
 }
 
 int CDatetime::getSecond() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
     return ptm->tm_sec;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_sec;
+#endif
 }
 
 int CDatetime::getYday() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-
     return ptm->tm_yday;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_yday;
+#endif
 }
 
 int CDatetime::getDayOfWeek() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-    
     return ptm->tm_wday;
+#else
+    struct tm ptm = { 0 };
+    localtime_r(&m_TimeSec, &ptm);
+    return ptm.tm_wday;
+#endif
 }
 
 std::string CDatetime::getWeekday() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
-    
+#else
+    struct tm stuTm = { 0 };
+    localtime_r(&m_TimeSec, &stuTm);
+    struct tm *ptm = &stuTm;
+#endif
+
     int tm_wday = ptm->tm_wday;
     
     return WEEKDAY[tm_wday];
@@ -512,7 +564,14 @@ std::string CDatetime::getWeekday() const
 
 int CDatetime::getWeekOfYear() const
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
+#else
+    struct tm stuTm = { 0 };
+    localtime_r(&m_TimeSec, &stuTm);
+    struct tm *ptm = &stuTm;
+#endif
+
     int tm_wday = ptm->tm_wday;
     int tm_yday = ptm->tm_yday;
 
@@ -526,10 +585,16 @@ int CDatetime::getWeekOfYear() const
 
 std::string CDatetime::getStrTime(const char *format) const
 {
-	struct tm *lt;
-    lt = localtime(&m_TimeSec);
+#ifdef _MSC_VER	
+    struct tm *ptm = localtime(&m_TimeSec);
+#else
+    struct tm stuTm = { 0 };
+    localtime_r(&m_TimeSec, &stuTm);
+    struct tm *ptm = &stuTm;
+#endif
+
 	char nowtime[128] = {0};
-	strftime(nowtime, 128, format, lt);
+	strftime(nowtime, 128, format, ptm);
 	return nowtime;
 }
 
@@ -628,7 +693,13 @@ void CDatetime::flushTime()
 
 int CDatetime::getCurTimePassSec()
 {
+#ifdef _MSC_VER	
     struct tm *ptm = localtime(&m_TimeSec);
+#else
+    struct tm stuTm = { 0 };
+    localtime_r(&m_TimeSec, &stuTm);
+    struct tm *ptm = &stuTm;
+#endif
 
     int hour = ptm->tm_hour;
     int minute = ptm->tm_min;
