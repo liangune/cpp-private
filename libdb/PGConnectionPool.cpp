@@ -126,7 +126,13 @@ void CPGConnectionPool::returnConnection(ConnItem *pConnItem)
 	pConnItem->nLastAccessedTime = time(NULL);
 	pConnItem->eState  = eConn_Unused;
 	--m_nUsedConnectionCnt;
-    std::lock_guard<std::mutex> guard(m_mutex);
+    
+	std::lock_guard<std::mutex> guard(m_mutex);
+	if (!pConnItem->PGClient.getStatus()) {
+		removeConnection(pConnItem);
+		return;
+	}
+
 	MapUseabledConnection::iterator iter = m_mapUseableConn.find(sKey);
 	if(iter != m_mapUseableConn.end())
 	{
@@ -140,6 +146,9 @@ void CPGConnectionPool::returnConnection(ConnItem *pConnItem)
 
 void CPGConnectionPool::removeConnection(ConnItem *pConnItem)
 {
+	if(!pConnItem)
+		return;
+
     std::string sKey = pConnItem->sKey;
 	int nPoolIndex = pConnItem->nPoolIndex;
 	MapUseabledConnection::iterator iter = m_mapUseableConn.find(sKey);

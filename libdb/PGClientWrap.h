@@ -26,13 +26,7 @@ public:
 
     ~CPGClientWrap() {
         if(m_pConnItem) {
-			CPGConnectionPool::getInstance()->returnConnection(m_pConnItem);
-			if (!m_pConnItem->PGClient.getStatus())
-			{
-				if (!m_pConnItem->PGClient.reConnect()) {
-					CPGConnectionPool::getInstance()->removeConnection(m_pConnItem);
-				}
-			}
+            CPGConnectionPool::getInstance()->returnConnection(m_pConnItem); 
         }
     }
 

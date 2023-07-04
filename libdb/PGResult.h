@@ -37,8 +37,11 @@ class CPGResult
 	bool getValue(int nColIndex, std::string &sValue);
 	bool getValue(int nColIndex, int &value);
 	bool getValue(int nColIndex, bool &value);
+	bool getValue(int nColIndex, float &value);
 	bool getValue(int nColIndex, double &value);
 	bool getValue(int nColIndex, int64_t &value);
+	bool getValue(int nColIndex, uint32_t &value);
+	bool getValue(int nColIndex, uint64_t &value);
 
 private:
     uint32_t m_nRowIndex;  // 从0开始

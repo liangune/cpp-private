@@ -95,6 +95,17 @@ bool CPGResult::getValue(int nColIndex, bool &value)
 	return false;
 }
 
+bool CPGResult::getValue(int nColIndex, float &value)
+{
+	std::string v;
+	if(getValue(nColIndex, v))
+	{
+		value = atof(v.c_str());
+		return true;
+	}
+	return false;
+}
+
 bool CPGResult::getValue(int nColIndex, double &value)
 {
 	std::string v;
@@ -112,6 +123,28 @@ bool CPGResult::getValue(int nColIndex, int64_t &value)
 	if(getValue(nColIndex, v))
 	{
 		value = strtoll(v.c_str(), NULL, 10);
+		return true;
+	}
+	return false;
+}
+
+bool CPGResult::getValue(int nColIndex, uint32_t &value)
+{
+    std::string v;
+	if(getValue(nColIndex, v))
+	{
+		value = atoi(v.c_str());
+		return true;
+	}
+	return false;
+}
+
+bool CPGResult::getValue(int nColIndex, uint64_t &value)
+{
+    std::string v;
+	if(getValue(nColIndex, v))
+	{
+		value = strtoull(v.c_str(), NULL, 10);
 		return true;
 	}
 	return false;

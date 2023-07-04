@@ -109,10 +109,16 @@ endif()
 
 set(LINK_ARCHIVES_DIR ${COMPONENT}/lib/${PLATFORM}/${ARCHITECTURE}/static)
 set(LINK_LIBS_DIR ${COMPONENT}/lib/${PLATFORM}/${ARCHITECTURE}/dynamic)
+
+set(libpq libpq_c)
+if(ARCHITECTURE MATCHES x64) 
+    set(libpq libpq_c64)
+endif()
+
 if(MSVC)
     # 动态库
     set(LINK_LIBS
-        ${LINK_LIBS_DIR}/libpq_c64/libpq.lib
+        ${LINK_LIBS_DIR}/${libpq}/libpq.lib
     )
 
     # 静态库
