@@ -56,6 +56,8 @@ public:
     // HTTP response
     void ServeError(Context *ctx, int code, const std::string &defaultMessage);
 
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+    void AllowCORS();
 };
 
 }

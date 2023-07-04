@@ -43,8 +43,8 @@ void Context::Init(const char *remoteHost, uint32_t port, std::string &host) {
     fullPath = URL.path;
 }
 
-// WriteStatus sets the HTTP response code.
-void Context::WriteStatus(int code) {
+// SetStatus sets the HTTP response code.
+void Context::SetStatus(int code) {
     statusCode = code;
     response->set_status_code(std::to_string(statusCode));
 }
@@ -54,13 +54,18 @@ bool Context::Write(const std::string& buf) {
     return response->append_output_body(buf);
 }
 
+bool Context::Write(const char *pszBuf, size_t nSize) {
+    std::string buf(pszBuf, nSize);
+    return response->append_output_body(buf);
+}
+
  // Status gets the HTTP response code.
-int Context::Status() const {
+int Context::GetStatus() const {
     return statusCode;
 }
 
 // It writes a header in the response.
-bool Context::WriteHeader(const std::string &key, const std::string &value) {
+bool Context::SetHeader(const std::string &key, const std::string &value) {
     return response->add_header_pair(key.c_str(), value.c_str());
 }
 
@@ -110,8 +115,32 @@ Slice& Context::GetBody() {
     return reqestBody;
 }
 
+std::string Context::GetBodyString() {
+    if(!isRequestBody) {
+		const void *body;
+        size_t len;
+        if(request->get_parsed_body(&body, &len)) {
+            reqestBody = Slice((char *)body, len);
+            isRequestBody = true;
+        }
+    }
+
+    return reqestBody.ToString();
+}   
+
 std::string Context::Referer() {
     return GetHeader("Referer");
+}
+
+// GetParam returns the value of the first Param which key matches the given name.
+// If no matching Param is found, an empty string is returned.
+std::string Context::GetParam(const std::string &key) {
+    for (auto &entry : params) {
+		if (entry.key == key) {
+			return entry.value;
+		}
+	}
+	return "";
 }
 
 // it returns the keyed url query value
@@ -161,7 +190,6 @@ bool Context::Get(const std::string &key, std::string &value) {
     return exists;
 }
 
-
 void Context::InitQueryCache() {
     if(!isQueryCache) {
         std::string query = URL.query;
@@ -203,5 +231,47 @@ void Context::Error(const std::string &errMsg) {
     workflowhttp::Error err(errMsg);
     errors.emplace_back(err);
 }
+
+// IsAborted returns true if the current context was aborted.
+bool Context::IsAborted() {
+	return index >= abortIndex;
+}
+
+// Abort prevents pending handlers from being called. Note that this will not stop the current handler.
+// Let's say you have an authorization middleware that validates that the current request is authorized.
+// If the authorization fails (ex: the password does not match), call Abort to ensure the remaining handlers
+// for this request are not called.
+void Context::Abort() {
+	index = abortIndex;
+}
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
+void Context::AbortWithStatus(int code) {
+	SetStatus(code);
+	Abort();
+}
+
+// SetCookie adds a Set-Cookie header to the provided HttpResponse's headers.
+// The provided cookie must have a valid Name. Invalid cookies may be
+// silently dropped.
+void Context::SetCookie(const HttpCookie& cookie) {
+    std::string val = cookie.String();
+    if (val != "") {
+		SetHeader("Set-Cookie", val);
+	}
+}
+
+// SetCookie adds a Set-Cookie header to the HttpResponse's headers.
+// The provided cookie must have a valid Name. Invalid cookies may be
+// silently dropped.
+void Context::SetCookie(const std::string &name, const std::string &value, int maxAge, const std::string& path, const std::string &domain, bool secure, bool httpOnly) {
+	/*
+    if (path == "") {
+		path = "/";
+	}
+    */
+}
+
 
 }

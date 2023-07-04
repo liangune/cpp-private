@@ -17,11 +17,12 @@ public:
 	virtual void Handle(const std::string& httpMethod, const std::string& relativePath, HandlerFunc handler) = 0;
 	virtual void GET(const std::string& relativePath, HandlerFunc handler) = 0;
 	virtual void POST(const std::string& relativePath, HandlerFunc handler) = 0;
-	virtual void DELETE1(const std::string& relativePath, HandlerFunc handler) = 0;
+	virtual void Delete(const std::string& relativePath, HandlerFunc handler) = 0;
 	virtual void PATCH(const std::string& relativePath, HandlerFunc handler) = 0;
 	virtual void PUT(const std::string& relativePath, HandlerFunc handler) = 0;
 	virtual void OPTIONS(const std::string& relativePath, HandlerFunc handler) = 0; 
 	virtual void HEAD(const std::string& relativePath, HandlerFunc handler) = 0;
+    virtual void Any(const std::string& relativePath, HandlerFunc handler) = 0;
 };
 
 
@@ -29,6 +30,7 @@ class Router : public IRouter {
 protected:
 	HandlersChain handlers;
     HTTPMethodHandlerFuncMap methodHandlerFuncMap;
+    std::string baseUrl;
 
 public:
     Router() = default;
@@ -45,13 +47,20 @@ public:
     
     void GET(const std::string& relativePath , HandlerFunc handler);
     void POST(const std::string& relativePath , HandlerFunc handler);
-    void DELETE1(const std::string& relativePath , HandlerFunc handler);
+    void Delete(const std::string& relativePath , HandlerFunc handler);
     void PATCH(const std::string& relativePath , HandlerFunc handler);
     void PUT(const std::string& relativePath , HandlerFunc handler);
     void OPTIONS(const std::string& relativePath , HandlerFunc handler);
     void HEAD(const std::string& relativePath , HandlerFunc handler);
+    void Any(const std::string& relativePath, HandlerFunc handler);
 
+    // GetHandler is a simple matching function, instead of GetRouterNode
     HandlerFunc GetHandler(const std::string& path, HTTPHandlerFuncVec &handers);
+    // RESTful API
+    RouterNode* GetRouterNode(const std::string& path, HTTPHandlerFuncVec &handers, Params &params);
+
+private:
+    bool Strendswith(const char* str, const char* end);
 };
 
 }

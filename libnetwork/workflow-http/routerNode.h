@@ -24,6 +24,7 @@ public:
     bool wildChild;
     uint32_t maxParams;
     NodeType nType;
+    std::string fullPath;
 
 public:
     RouterNode() = default;
@@ -31,7 +32,7 @@ public:
 
     uint8_t CountParams(const std::string &path) {
         uint8_t n = 0;
-        for (int i = 0; i < path.size(); i++) {
+        for (size_t i = 0; i < path.size(); i++) {
             if (path[i] != ':' && path[i] != '*') {
                 continue;
             }
@@ -46,7 +47,7 @@ public:
     RouterNode(const std::string &path, HandlerFunc handler) {
         this->handler = handler;
         this->wildChild = false;
-        std::string fullPath = path;
+        this->fullPath = path;
         this->maxParams = CountParams(path);
 
         if(this->maxParams > 0) {
@@ -69,6 +70,7 @@ public:
             this->nType = NodeTypeStatic;
         }
     }
+
 };
 
 }

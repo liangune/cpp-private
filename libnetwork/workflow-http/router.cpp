@@ -7,7 +7,7 @@ void Router::Handle(const std::string &httpMethod, const std::string &relativePa
 }
 
 void Router::CombineHandlers(HandlersChain &handlers, HandlersChain &mergedHandlers) {
-    size_t finalSize = handlers.size() + this->handlers.size();
+    //size_t finalSize = handlers.size() + this->handlers.size();
 
     HandlersChain::iterator it = this->handlers.begin();
     for(; it != this->handlers.end(); it++) {
@@ -40,7 +40,7 @@ void Router::POST(const std::string& relativePath , HandlerFunc handler) {
     Handle(MethodPost, relativePath, handler);
 }
 
-void Router::DELETE1(const std::string& relativePath , HandlerFunc handler) {
+void Router::Delete(const std::string& relativePath , HandlerFunc handler) {
     Handle(MethodDelete, relativePath, handler);
 }
 
@@ -58,6 +58,18 @@ void Router::OPTIONS(const std::string& relativePath , HandlerFunc handler) {
 
 void Router::HEAD(const std::string& relativePath , HandlerFunc handler) {
     Handle(MethodHead, relativePath, handler);
+}
+
+void Router::Any(const std::string& relativePath, HandlerFunc handler) {
+	Handle(MethodGet, relativePath, handler);
+	Handle(MethodPost, relativePath, handler);
+	Handle(MethodPut, relativePath, handler);
+	Handle(MethodPatch, relativePath, handler);
+	Handle(MethodHead, relativePath, handler);
+	Handle(MethodOptions, relativePath, handler);
+	Handle(MethodDelete, relativePath, handler);
+	Handle(MethodConnect, relativePath, handler);
+	Handle(MethodTrace, relativePath, handler);
 }
 
 HandlerFunc Router::GetHandler(const std::string& path, HTTPHandlerFuncVec &handers) {
@@ -80,6 +92,91 @@ HandlerFunc Router::GetHandler(const std::string& path, HTTPHandlerFuncVec &hand
                     return node->handler;
                 }
             }
+        }
+    }
+
+    return nullptr;
+}
+
+bool Router::Strendswith(const char* str, const char* end) {
+    if (str == NULL || end == NULL) {
+        return false;
+    }
+
+    int len1 = 0;
+    int len2 = 0;
+    while (*str) {++str; ++len1;}
+    while (*end) {++end; ++len2;}
+    if (len1 < len2) return false;
+    while (len2-- > 0) {
+        --str;
+        --end;
+        if (*str != *end) {
+            return false;
+        }
+    }
+    return true;
+}
+
+RouterNode* Router::GetRouterNode(const std::string& path, HTTPHandlerFuncVec &handers, Params &params) {
+    // {baseUrl}/path?query
+    const char* s = path.c_str();
+    const char* b = baseUrl.c_str();
+    while (*s && *b && *s == *b) {++s;++b;}
+    if (*b != '\0') {
+        return nullptr;
+    }
+    const char* e = s;
+    while (*e && *e != '?') ++e;
+
+    std::string pathTmp = std::string(s, e);
+    const char *kp, *ks, *vp, *vs;
+    bool match;
+    for (auto iter = handers.begin(); iter != handers.end(); ++iter) {
+        kp = iter->get()->fullPath.c_str();
+        vp = pathTmp.c_str();
+        match = false;
+        Params vecParams;
+
+        while (*kp && *vp) {
+            if (kp[0] == '*') {
+                // wildcard *
+                match = Strendswith(vp, kp+1);
+                break;
+            } else if (*kp != *vp) {
+                match = false;
+                break;
+            } else if (kp[0] == '/' && (kp[1] == ':' || kp[1] == '{')) {
+                    // RESTful /:field/
+                    // RESTful /{field}/
+                    kp += 2;
+                    ks = kp;
+                    while (*kp && *kp != '/') {++kp;}
+                    vp += 1;
+                    vs = vp;
+                    while (*vp && *vp != '/') {++vp;}
+                    int klen = kp - ks;
+                    if (*(ks-1) == '{' && *(kp-1) == '}') {
+                        --klen;
+                    }
+                    Param p;
+                    p.key = std::string(ks, klen);
+                    p.value = std::string(vs, vp-vs);
+                    vecParams.push_back(p);
+                    continue;
+            } else {
+                ++kp;
+                ++vp;
+            }
+        }
+
+        match = match ? match : (*kp == '\0' && *vp == '\0');
+
+        if (match) {
+            if (vecParams.size() > 0) {
+                params.assign(vecParams.begin(), vecParams.end());
+            }
+            return iter->get();
         }
     }
 

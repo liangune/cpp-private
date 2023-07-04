@@ -12,8 +12,7 @@
 #include "urlParser.h"
 #include "error.h"
 #include "workflow/RWLock.h"
-
-//class RWLock;
+#include "httpCookie.h"
 
 namespace workflowhttp {
 class Context;
@@ -27,11 +26,25 @@ using WFHttpServerPtr = std::shared_ptr<WFHttpServer>;
 using ContextPtr = std::shared_ptr<Context>;
 using ErrorsChain = std::vector<Error>;
 
+#define abortIndex MaxInt8 / 2
+
+// Param is a single URL parameter, consisting of a key and a value.
+typedef struct {
+	std::string key;
+	std::string value;
+}Param;
+
+// Params is a Param-slice, as returned by the router.
+// The slice is ordered, the first URL parameter is also the first slice value.
+// It is therefore safe to read values by the index.
+using Params = std::vector<Param>;
+
 class Context {
 public:
     protocol::HttpRequest *request;
     protocol::HttpResponse *response;
     HandlersChain handlers;
+    Params params;
 
 private:
     size_t index;
@@ -91,17 +104,18 @@ public:
 
     void Init(const char *remoteHost, uint32_t port, std::string &host);
 
-    // WriteStatus sets the HTTP response code.
-    void WriteStatus(int code);
+    // SetStatus sets the HTTP response code.
+    void SetStatus(int code);
 
     // Write sets the HTTP response content.
     bool Write(const std::string& buf);
+    bool Write(const char *pszBuf, size_t nSize);
 
-    // Status gets the HTTP response code.
-    int Status() const;
+    // GetStatus gets the HTTP response code.
+    int GetStatus() const;
 
     // It writes a header in the response.
-    bool WriteHeader(const std::string &key, const std::string &value);
+    bool SetHeader(const std::string &key, const std::string &value);
 
     // GetHeader returns value from request headers.
     std::string GetHeader(const std::string &key);
@@ -118,6 +132,7 @@ public:
     std::string Path() const;
 
     Slice& GetBody();
+    std::string GetBodyString();
 
     // Referer is misspelled as in the request itself, a mistake from the
     // earliest days of HTTP.  This value can also be fetched from the
@@ -126,6 +141,14 @@ public:
     // alternate (correct English) spelling req.Referrer() but cannot
     // diagnose programs that use Header["Referrer"].
     std::string Referer();
+
+    // GetParam returns the value of the URL param.
+    // It is a shortcut for c.Params.ByName(key)
+    //     router.GET("/user/:id", [&](workflowhttp::Context *ctx) {
+    //         // a GET request to /user/john
+    //         id := ctx->GetParam("id") // id == "john"
+    //     })
+    std::string GetParam(const std::string &key);
 
     // it returns the keyed url query value
     // if it exists `value ` (even when the value is an empty string),
@@ -160,6 +183,16 @@ public:
     // A middleware can be used to collect all the errors and push them to a database together,
     // print a log, or append it in the HTTP response.
     void Error(const std::string& errMsg);
+
+    // IsAborted returns true if the current context was aborted.
+    bool IsAborted();
+    
+    void Abort(); 
+    
+    void AbortWithStatus(int code);
+
+    void SetCookie(const HttpCookie& cookie);
+    void SetCookie(const std::string &name, const std::string &value, int maxAge, const std::string& path, const std::string &domain, bool secure, bool httpOnly);
 };
 
 }

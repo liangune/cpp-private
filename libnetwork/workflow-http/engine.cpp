@@ -1,6 +1,5 @@
 #include "engine.h"
-
-#include <iostream>
+#include "httpMiddleware.h"
 
 namespace workflowhttp {
 
@@ -83,8 +82,15 @@ void Engine::HandleHTTPRequest(Context *ctx) {
         return;
     }
 
-    auto f = GetHandler(path, it->second);
-    if(f == nullptr) {
+    RouterNode* pRouterNode = GetRouterNode(path, it->second, ctx->params);
+    if(pRouterNode == nullptr) {
+        ctx->CombineHandlers(allNoRoute);
+        ServeError(ctx, StatusNotFound, default404Body);
+        return;
+    }
+
+    auto f = pRouterNode->handler;
+    if (f == nullptr) {
         ctx->CombineHandlers(allNoRoute);
         ServeError(ctx, StatusNotFound, default404Body);
         return;
@@ -110,11 +116,15 @@ void Engine::Rebuild405Handlers() {
 
 // HTTP response
 void Engine::ServeError(Context *ctx, int code, const std::string &defaultMessage) {
-    ctx->WriteStatus(code);
+    ctx->SetStatus(code);
     ctx->Next();
 
-    ctx->WriteHeader("Content-Type", MIMEPlain);
+    ctx->SetHeader("Content-Type", MIMEPlain);
     ctx->Write(defaultMessage);
+}
+
+void Engine::AllowCORS() {
+    Use(HttpMiddleware::CORS);
 }
 
 }

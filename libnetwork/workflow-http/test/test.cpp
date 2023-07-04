@@ -1,7 +1,7 @@
 #include "../engine.h"
 #include "../context.h"
 #include <iostream>
-#include <unistd.h>
+//#include <unistd.h>
 
 workflowhttp::HandlerFunc Access()  {
     return [&](workflowhttp::Context *ctx) {
@@ -23,10 +23,16 @@ workflowhttp::HandlerFunc Recovery() {
 void GET_TEST(workflowhttp::Context *ctx) {
     std::cout << "GET_TEST start" << std::endl;
 
+	std::cout << "method: " << ctx->Method() << std::endl;
 	std::cout << "header: " << ctx->GetHeader("Authorization") << std::endl;
+	std::cout << "body: " << ctx->GetBody().ToString() << std::endl;
+	std::cout << "param: " << ctx->GetParam("id") << std::endl;
 
-    ctx->WriteStatus(200);
+	//ctx->SetHeader("Content-Length", "1");
+    ctx->SetStatus(200);
     ctx->Write("test");
+
+	//std::cin.get();
 }
 
 void process(WFHttpTask *server_task)
@@ -96,9 +102,11 @@ int main(int argc, char *argv[])
 {
 #if 1
     workflowhttp::Engine engine(9002);
-    //engine.Use(Access()).Use(Recovery());
+    engine.Use(Access()).Use(Recovery());
     engine.GET("/gettest", &GET_TEST);
+	engine.POST("/gettest", &GET_TEST);
 	engine.GET("/Z*", &GET_TEST);
+	engine.GET("/gettest/:id", &GET_TEST);
     
     if(engine.Start()) {
 #ifndef _WIN32
