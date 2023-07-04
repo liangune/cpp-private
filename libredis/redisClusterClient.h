@@ -26,6 +26,7 @@ class CRedisClusterClient: public CRedisClient
 	bool setTimeout(long seconds);
 	bool setKeepAlive();
 	bool query(unsigned char type, const char* fmt, ...);
+	bool query(unsigned char type, int argc, const char **argv, const size_t *argvlen);
  protected:
 	string_t m_sError;
 };

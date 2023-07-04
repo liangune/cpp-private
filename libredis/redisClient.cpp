@@ -130,6 +130,18 @@ bool CRedisClient::query(const char* fmt, ...)
 	return false;
 }
 
+bool CRedisClient::query(unsigned char type, int argc, const char **argv, const size_t *argvlen)
+{
+	if( m_ctx.pSingle )
+	{
+		this->freeReply();
+		m_reply = (redisReply*)redisCommandArgv(m_ctx.pSingle, argc, argv, argvlen);
+		if( m_reply && (m_reply->type == type) )
+			return true;
+	}
+
+	return false;	
+}
 
 bool CRedisClient::del_match_keys(const string_t &match_key)
 {
@@ -646,6 +658,69 @@ redis_integer_t CRedisClient::hscan(const string_t &key, redis_integer_t cursor,
 	}
 	return replyCursor;	
 }
+
+bool CRedisClient::hmset(const string_t &key, redis_map_t &fields)
+{
+	redis_array_t vecCmd;
+	vecCmd.push_back("HMSET");
+	vecCmd.push_back(key);
+
+	string_t sFields;
+	for(auto it = fields.begin(); it != fields.end(); it++) {
+		vecCmd.push_back(it->first);
+		vecCmd.push_back(it->second);
+	}
+	std::vector<const char *> argv(vecCmd.size());
+	std::vector<size_t> argvlen(vecCmd.size());
+	uint32_t i = 0;
+	for(auto it = vecCmd.begin(); it != vecCmd.end(); it++, i++) {
+		argv[i] = it->c_str();
+		argvlen[i] = it->size();
+	}
+
+	if( this->query(REDIS_REPLY_STATUS, argv.size(), &(argv[0]), &(argvlen[0])) )
+	{
+		return REPLY_STATUS_OK(m_reply->str);
+	}
+ 	
+	return false;
+}
+
+redis_array_t CRedisClient::hmget(const string_t &key, std::initializer_list<string_t> fields)
+{
+	redis_array_t vecCmd;
+	vecCmd.push_back("HMGET");
+	vecCmd.push_back(key);
+
+	string_t sFields;
+	for(auto it = fields.begin(); it != fields.end(); it++) {
+		vecCmd.push_back(*it);
+	}
+	std::vector<const char *> argv(vecCmd.size());
+	std::vector<size_t> argvlen(vecCmd.size());
+	uint32_t i = 0;
+	for(auto it = vecCmd.begin(); it != vecCmd.end(); it++, i++) {
+		argv[i] = it->c_str();
+		argvlen[i] = it->size();
+	}
+
+	redis_array_t redis_array;
+	if( this->query(REDIS_REPLY_ARRAY, argv.size(), &(argv[0]), &(argvlen[0])) )
+	{
+		for(size_t i=0; i<m_reply->elements; ++i)
+		{
+			if (m_reply->element[i]->str == NULL) {
+				redis_array.push_back("");
+			} else {
+				redis_array.push_back(m_reply->element[i]->str);
+			}
+		}
+		return redis_array;
+	}
+
+	return redis_array;
+}
+
 
 //////////////// list ////////////////
 redis_array_t CRedisClient::lrange(const string_t &key, int iBeg, int iEnd)

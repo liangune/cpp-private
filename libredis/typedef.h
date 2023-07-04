@@ -8,6 +8,7 @@
 #include <set>
 #include <list>
 #include <stdint.h>
+#include <initializer_list>
 
 typedef long long redis_integer_t;
 typedef std::vector<std::string> redis_array_t;

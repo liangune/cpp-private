@@ -84,6 +84,19 @@ bool CRedisClusterClient::query(unsigned char type, const char* fmt, ...)
 	return false;
 }
 
+bool CRedisClusterClient::query(unsigned char type, int argc, const char **argv, const size_t *argvlen)
+{
+	if( m_ctx.pCluster )
+	{
+		this->freeReply();
+		m_reply = (redisReply*)redisClusterCommandArgv(m_ctx.pCluster, argc, argv, argvlen);
+		if( m_reply && (m_reply->type == type) )
+			return true;
+	}
+
+	return false;	
+}
+
 bool CRedisClusterClient::formatQuery(const string_t &cmd)
 {
 	if( m_ctx.pCluster )
