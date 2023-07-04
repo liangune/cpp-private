@@ -15,6 +15,9 @@ class CPublicFunc {
 public:
 	static void Split(const std::string& sStr, const std::string& sSep, std::vector<int32_t>& vecOut);
 	static void Split(const std::string& sStr, const std::string& sSep, std::vector<std::string>& vecOut);
+	
+	static int64_t DJBHash(const std::string &str);
+    static int32_t GetDJBHashPosition(const std::string &str, int32_t modNum);
 };
 
 #endif // _PUBLIC_FUNC_H_

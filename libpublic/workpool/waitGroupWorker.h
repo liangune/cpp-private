@@ -1,11 +1,6 @@
-/*************************************************************************
-	> Date:   2020-12-08
-	> Author: liangjun
-	> Desc:   工作线程
-*************************************************************************/
+#ifndef _WAIT_GROUP_WORKER_H_
+#define _WAIT_GROUP_WORKER_H_
 
-#ifndef _WORKER_THREAD_H_
-#define _WORKER_THREAD_H_
 #include <memory>
 #include <atomic>
 #include "taskInterface.h"
@@ -13,14 +8,15 @@
 #include "typedef.h"
 #include "handleInterface.h"
 
-// 工作线程
-class Worker
+namespace Sync {
+    
+class WaitGroupWorker
 {
 public:
     using ShareptrQueue = SyncQueue<std::shared_ptr<TaskInterface>>;
 public:
-    Worker();
-    virtual ~Worker();
+    WaitGroupWorker();
+    virtual ~WaitGroupWorker();
 
     virtual void Run();
     virtual void Handle();
@@ -39,6 +35,7 @@ public:
     HandleInterface *GetHandle();
 
     void SetTaskCompleteFunc(TaskCompleteFunc func);
+    void SetTaskCompleteStatuFunc(TaskCompleteStatusFunc func);
 protected:
     ShareptrQueue m_queue;
     std::atomic<bool> m_isEnable;
@@ -46,6 +43,8 @@ protected:
     uint32_t m_nIndex;
     HandleInterface *m_pHandle;
     TaskCompleteFunc m_taskCompleteFunc; 
+    TaskCompleteStatusFunc m_taskCompleteStatusFunc;
 };
 
-#endif // !_WORKER_THREAD_H_
+}
+#endif // !_WAIT_GROUP_WORKER_H_

@@ -112,7 +112,7 @@ public:
     }
 
     // 读取时设置limit和position的值, 写入则不用设置limit和postion的值
-    virtual void Compact() = 0;
+    virtual void Compact() {};
 
     // ============================================================
     ByteBuffer& PutByte(char value)

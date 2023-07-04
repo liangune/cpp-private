@@ -116,7 +116,7 @@ public:
 
     /*
     * @brief: 
-    * @param format 字符串格式          如："%Y-%m-%d %H:%M%S"
+    * @param format 字符串格式          如："%Y-%m-%d %H:%M:%S"
     * @return       返回字符串格式的时间 如: 2018-02-08 08:48:14 
     */
     std::string getStrTime(const char *format = DEFAULT_DATETIME_FORMAT) const;

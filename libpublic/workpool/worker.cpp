@@ -3,21 +3,23 @@
 	> Author: liangjun
 	> Desc:   工作线程
 *************************************************************************/
-#include <chrono>
 #include <thread> 
 #include "worker.h"
-#include "typedef.h"
 
 Worker::Worker()
 {
    m_isEnable = false;
    m_isClosed = false;
    m_pHandle = nullptr;
+   m_taskCompleteFunc = nullptr;
 }
 
 Worker::~Worker()
 {
-
+    if (m_pHandle != nullptr) {
+        delete m_pHandle;
+        m_pHandle = nullptr;
+    }
 }
 
 void Worker::Run()
@@ -34,6 +36,9 @@ void Worker::Handle()
 {
     ShareptrTask ptrTask = std::move(m_queue.pop());
     ptrTask->Execute(this);
+    if (m_taskCompleteFunc != nullptr) {
+        m_taskCompleteFunc();
+    }
 }
 
 void Worker::AddTask(ShareptrTask pTask)
@@ -81,4 +86,9 @@ void Worker::SetHandle(HandleInterface *handPtr)
 HandleInterface *Worker::GetHandle()
 {
     return m_pHandle;
+}
+
+void Worker::SetTaskCompleteFunc(TaskCompleteFunc func)
+{
+    m_taskCompleteFunc = func;
 }
