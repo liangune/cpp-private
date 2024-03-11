@@ -15,7 +15,7 @@ class CRedisClusterClient: public CRedisClient
  	CRedisClusterClient();
 	~CRedisClusterClient();
 
-	int connect(const string_t &sAddres = "127.0.0.1:6379", int flags = HIRCLUSTER_FLAG_NULL, long timeout = 1000*3, string_t passwd="");
+	int connect(const string_t &sAddres = "127.0.0.1:6379", int flags = HIRCLUSTER_FLAG_NULL, long timeout = 1000*3, string_t password="");
 	void close();
 	bool formatQuery(const string_t &cmd);
 	const char *strerror() const;

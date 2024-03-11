@@ -87,6 +87,7 @@ class CRedisClient
 	redis_integer_t hscan(const string_t &key, redis_integer_t cursor, redis_integer_t count, redis_map_t &mapOut);
 	bool hmset(const string_t &key, redis_map_t &fields);
 	redis_array_t hmget(const string_t &key, std::initializer_list<string_t> fields);
+	redis_integer_t hdel(const string_t &key, std::initializer_list<string_t> fields);
 
 	// list
 	redis_array_t lrange(const string_t &key, int iBeg = 0, int iEnd = -1);

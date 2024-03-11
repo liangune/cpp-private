@@ -269,11 +269,16 @@ typedef struct redisContext {
 
     /* An optional RESP3 PUSH handler */
     redisPushFn *push_cb;
+
+    /* Configurations */
+    char *username;                  /* Authenticate using user */
+    char *password;                  /* Authentication password */
 } redisContext;
 
 redisContext *redisConnectWithOptions(const redisOptions *options);
 redisContext *redisConnect(const char *ip, int port);
 redisContext *redisConnectWithTimeout(const char *ip, int port, const struct timeval tv);
+redisContext *redisConnectWithTimeoutAuth(const char *ip, int port, const struct timeval tv, const char* username, const char* password);
 redisContext *redisConnectNonBlock(const char *ip, int port);
 redisContext *redisConnectBindNonBlock(const char *ip, int port,
                                        const char *source_addr);
@@ -283,6 +288,12 @@ redisContext *redisConnectUnix(const char *path);
 redisContext *redisConnectUnixWithTimeout(const char *path, const struct timeval tv);
 redisContext *redisConnectUnixNonBlock(const char *path);
 redisContext *redisConnectFd(redisFD fd);
+
+/* Configuration options */
+int redisSetOptionPassword(redisContext *c, const char *password);
+int redisSetOptionUsername(redisContext *c, const char *username);
+
+int authPassword(redisContext* c);
 
 /**
  * Reconnect the given context using the saved information.

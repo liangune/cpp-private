@@ -851,6 +851,20 @@ redisContext *redisConnectWithTimeout(const char *ip, int port, const struct tim
     return redisConnectWithOptions(&options);
 }
 
+redisContext *redisConnectWithTimeoutAuth(const char *ip, int port, const struct timeval tv, const char* username, const char* password) {
+    redisOptions options = {0};
+    REDIS_OPTIONS_SET_TCP(&options, ip, port);
+    options.connect_timeout = &tv;
+    redisContext *c  = redisConnectWithOptions(&options);
+    if(redisSetOptionUsername(c, username) == REDIS_OK && redisSetOptionPassword(c, password) == REDIS_OK) {
+        if(authPassword(c) != REDIS_OK) {
+            __redisSetError(c, REDIS_ERR_OTHER, "Authentication failure");
+        }
+    }
+
+    return c;
+}
+
 redisContext *redisConnectNonBlock(const char *ip, int port) {
     redisOptions options = {0};
     REDIS_OPTIONS_SET_TCP(&options, ip, port);
@@ -902,6 +916,8 @@ redisContext *redisConnectFd(redisFD fd) {
     options.endpoint.fd = fd;
     return redisConnectWithOptions(&options);
 }
+
+
 
 /* Set read/write timeout on a blocking socket. */
 int redisSetTimeout(redisContext *c, const struct timeval tv) {
@@ -1172,13 +1188,66 @@ void *redisCommandArgv(redisContext *c, int argc, const char **argv, const size_
     return __redisBlockForReply(c);
 }
 
-//2021-9-22 password
-static int authPassword(redisContext* c, const char* passwd)
+/**
+ * Configure a password used when connecting to password-protected
+ * Redis instances. (See Redis AUTH command)
+ */
+int redisSetOptionPassword(redisContext *c, const char *password)
 {
-    if ( passwd!=NULL && strlen(passwd)>0 ) 
+    if (c == NULL) {
+        return REDIS_ERR;
+    }
+
+    // Disabling use of password
+    if (password == NULL || password[0] == '\0') {
+        hi_free(c->password);
+        c->password = NULL;
+        return REDIS_OK;
+    }
+
+    hi_free(c->password);
+    c->password = hi_strdup(password);
+    if (c->password == NULL) {
+        return REDIS_ERR;
+    }
+
+    return REDIS_OK;
+}
+
+/**
+ * Configure a username used during authentication, see
+ * the Redis AUTH command.
+ * Disabled by default. Can be disabled again by providing an
+ * empty string or a null pointer.
+ */
+int redisSetOptionUsername(redisContext *c, const char *username)
+{
+    if (c == NULL) {
+        return REDIS_ERR;
+    }
+
+    // Disabling option
+    if (username == NULL || username[0] == '\0') {
+        hi_free(c->username);
+        c->username = NULL;
+        return REDIS_OK;
+    }
+
+    hi_free(c->username);
+    c->username = hi_strdup(username);
+    if (c->username == NULL) {
+        return REDIS_ERR;
+    }
+
+    return REDIS_OK;
+}
+
+//2021-9-22 password
+int authPassword(redisContext* c)
+{
+    if (c->password != NULL && strlen(c->password) > 0) 
 	{
-        printf("hiredis auth password.\n");
-    	redisReply* reply = (redisReply *)redisCommand(c, "auth %s", passwd);
+    	redisReply* reply = (redisReply *)redisCommand(c, "auth %s", c->password);
 
         if (NULL==reply)
         {

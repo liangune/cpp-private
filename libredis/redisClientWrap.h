@@ -13,12 +13,12 @@ public:
     CRedisClientWrap& operator=(const CRedisClientWrap&)=delete;
 
 public:
-	CRedisClientWrap(std::string ip, int port, bool bCluster=false, std::string passwd=""):m_pClient(NULL)
+	CRedisClientWrap(std::string ip, int port, bool bCluster=false, std::string password=""):m_pClient(NULL)
 	{
 		if (false==bCluster)
-			m_pClient =  CRedisClientPool::getInstance()->getClient(ip, port, passwd);
+			m_pClient =  CRedisClientPool::getInstance()->getClient(ip, port, password);
 		else
-			m_pClient =  CRedisClientPool::getInstance()->getClusterClient(ip, passwd);
+			m_pClient =  CRedisClientPool::getInstance()->getClusterClient(ip, password);
 	}
 
 	~CRedisClientWrap()

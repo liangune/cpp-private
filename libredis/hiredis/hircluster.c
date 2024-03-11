@@ -1641,6 +1641,39 @@ redisClusterContext *redisClusterConnectWithTimeout(const char *addrs,
     return _redisClusterConnect(cc, addrs);
 }
 
+redisClusterContext *redisClusterConnectWithTimeoutAuth(const char *addrs,
+                                                    const struct timeval tv,
+                                                    int flags,
+                                                    const char* username,
+                                                    const char* password) {
+    redisClusterContext *cc;
+
+    cc = redisClusterContextInit();
+
+    if (cc == NULL) {
+        return NULL;
+    }
+
+    cc->flags |= REDIS_BLOCK;
+    if (flags) {
+        cc->flags |= flags;
+    }
+
+    if (cc->connect_timeout == NULL) {
+        cc->connect_timeout = hi_malloc(sizeof(struct timeval));
+        if (cc->connect_timeout == NULL) {
+            return NULL;
+        }
+    }
+
+    memcpy(cc->connect_timeout, &tv, sizeof(struct timeval));
+
+    redisClusterSetOptionUsername(cc, username);
+    redisClusterSetOptionPassword(cc, password);
+
+    return _redisClusterConnect(cc, addrs);
+}
+
 redisClusterContext *redisClusterConnectNonBlock(const char *addrs, int flags) {
 
     redisClusterContext *cc;

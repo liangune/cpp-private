@@ -24,13 +24,13 @@ CRedisClient::~CRedisClient()
 /*
  * @param: timeout 毫秒
 */
-int CRedisClient::connect(const string_t &ip, int port, long timeout, string_t passwd)
+int CRedisClient::connect(const string_t &ip, int port, long timeout, string_t password)
 {
 	struct timeval tv;
 	tv.tv_sec  = timeout/1000;
 	tv.tv_usec = (timeout%1000) * 1000;
 
-	redisContext * c = redisConnectWithTimeout(C_STR(ip), port, tv);
+	redisContext * c = redisConnectWithTimeoutAuth(C_STR(ip), port, tv, NULL, password.c_str());
 
 	if( c == NULL )
 	{
@@ -721,6 +721,31 @@ redis_array_t CRedisClient::hmget(const string_t &key, std::initializer_list<str
 	return redis_array;
 }
 
+redis_integer_t CRedisClient::hdel(const string_t &key, std::initializer_list<string_t> fields)
+{
+	redis_array_t vecCmd;
+	vecCmd.push_back("HDEL");
+	vecCmd.push_back(key);
+
+	string_t sFields;
+	for(auto it = fields.begin(); it != fields.end(); it++) {
+		vecCmd.push_back(*it);
+	}
+	std::vector<const char *> argv(vecCmd.size());
+	std::vector<size_t> argvlen(vecCmd.size());
+	uint32_t i = 0;
+	for(auto it = vecCmd.begin(); it != vecCmd.end(); it++, i++) {
+		argv[i] = it->c_str();
+		argvlen[i] = it->size();
+	}
+
+	if( this->query(REDIS_REPLY_INTEGER, argv.size(), &(argv[0]), &(argvlen[0])) )
+	{
+		return m_reply->integer;
+	}
+
+	return 0;
+}
 
 //////////////// list ////////////////
 redis_array_t CRedisClient::lrange(const string_t &key, int iBeg, int iEnd)

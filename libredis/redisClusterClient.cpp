@@ -19,13 +19,13 @@ CRedisClusterClient::~CRedisClusterClient()
 	this->close();
 }
 
-int CRedisClusterClient::connect(const string_t &sAddres, int flags, long timeout, string_t passwd)
+int CRedisClusterClient::connect(const string_t &sAddres, int flags, long timeout, string_t password)
 {
 	struct timeval tv;
 	tv.tv_sec  = timeout/1000;
 	tv.tv_usec = (timeout%1000) * 1000;
 
-	redisClusterContext * c = redisClusterConnectWithTimeout(C_STR(sAddres), tv, flags);
+	redisClusterContext * c = redisClusterConnectWithTimeoutAuth(C_STR(sAddres), tv, flags, NULL, password.c_str());
 
 	if( c == NULL )
 	{

@@ -170,6 +170,11 @@ redisClusterContext *redisClusterConnect(const char *addrs, int flags);
 redisClusterContext *redisClusterConnectWithTimeout(const char *addrs,
                                                     const struct timeval tv,
                                                     int flags);
+redisClusterContext *redisClusterConnectWithTimeoutAuth(const char *addrs,
+                                                    const struct timeval tv,
+                                                    int flags,
+                                                    const char* username,
+                                                    const char* password);
 redisClusterContext *redisClusterConnectNonBlock(const char *addrs, int flags);
 int redisClusterConnect2(redisClusterContext *cc);
 
