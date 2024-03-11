@@ -33,6 +33,12 @@ public:
 		std::string sUrl;
 	};
 
+	struct Connection {
+		ConnItem *pConnItem;
+		std::string sConnectionURL;
+		std::string sError;
+	};
+
     typedef std::vector<ConnItem*> VecConnectionPool;
 	typedef std::list<int> ListUseabledConnection;
 	typedef std::map<std::string, ListUseabledConnection > MapUseabledConnection;
@@ -43,7 +49,7 @@ private:
 
 public:
     static CPGConnectionPool *getInstance();
-    ConnItem *getConnection(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t nTimeout = CPGClient::m_nDefaultTimeout);
+    Connection getConnection(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t nTimeout = CPGClient::m_nDefaultTimeout, uint32_t SSL=PG_DISABLE_SSL);
     
     void setMaxConnectionCnt(uint32_t nCount);
 	//设置超时关闭时间

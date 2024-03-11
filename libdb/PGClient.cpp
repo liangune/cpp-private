@@ -5,6 +5,8 @@
 *************************************************************************/
 #include "PGClient.h"
 #include <string>
+#include <string.h>
+#include "url.h"
 
 CPGClient::CPGClient()
 {
@@ -16,19 +18,20 @@ CPGClient::~CPGClient()
 
 }
 
-bool CPGClient::connect(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName)
+bool CPGClient::connect(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t SSL)
 {
 	m_sHost = host;
 	m_sPort = port;
 	m_sUser = username;
 	m_sPassword = password;
 	m_sDbName = dbName;
+	m_nSSL = SSL;
 
-	std::string sConninfo = getConninfo(m_sHost, m_sPort, m_sUser, m_sPassword, m_sDbName);
+	std::string sConninfo = getConninfo(m_sHost, m_sPort, m_sUser, m_sPassword, m_sDbName, m_nSSL);
 
 	m_pPGConn = PQconnectdb(sConninfo.c_str());
 	if (PQstatus(m_pPGConn) != CONNECTION_OK){
-		m_sError = "connect postgreSql fail! conninfo: " + sConninfo;
+		m_sError = PQerrorMessage(m_pPGConn);
 		close();
 		return false;
 	}
@@ -36,24 +39,32 @@ bool CPGClient::connect(std::string &host, std::string &port, std::string &usern
 	return true;
 }
 
-std::string CPGClient::getConninfo(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName)
+std::string CPGClient::getConninfo(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t SSL)
 {
 	std::string sTimeout = std::to_string(m_nTimeout); 
-	std::string sConninfo = "host=" + host + " port=" + port
-		+ " dbname=" + dbName
-		+ " user=" + username
-		+ " password=" + password
-		+ " connect_timeout=" + sTimeout;
-	return sConninfo;
+
+	if (SSL == PG_ENABLE_SSL) {
+		m_sUrl = "postgresql://" + host + ":" + port + "/" + dbName +"?" 
+				+ "user=" + CUrl::escapeUrl(username) + "&password=" + CUrl::escapeUrl(password)
+				+  "&connect_timeout=" + sTimeout
+				+  "&sslmode=require";
+	} else {
+		m_sUrl = "postgresql://" + host + ":" + port + "/" + dbName +"?" 
+				+ "user=" + CUrl::escapeUrl(username) + "&password=" + CUrl::escapeUrl(password)
+				+  "&connect_timeout=" + sTimeout
+				+  "&sslmode=disable";
+	}
+
+	return m_sUrl;
 }
 
 bool CPGClient::reConnect()
 {
-	std::string sConninfo = getConninfo(m_sHost, m_sPort, m_sUser, m_sPassword, m_sDbName);
+	std::string sConninfo = getConninfo(m_sHost, m_sPort, m_sUser, m_sPassword, m_sDbName, m_nSSL);
 
 	m_pPGConn = PQconnectdb(sConninfo.c_str());
 	if (PQstatus(m_pPGConn) != CONNECTION_OK){
-		m_sError = "connect postgreSql fail! conninfo: " + sConninfo;
+		m_sError = PQerrorMessage(m_pPGConn);
 		close();
 		return false;
 	}
@@ -77,6 +88,11 @@ PGconn *CPGClient::getConn() const
 std::string CPGClient::getErrorMessage() const
 {
 	return m_sError;
+}
+
+std::string CPGClient::getConnectionURL() const 
+{
+	return m_sUrl;
 }
 
 bool CPGClient::getStatus() 
@@ -140,9 +156,18 @@ bool CPGClient::exec(const char *command, CPGResult &res)
 	return true;
 }
 
-size_t CPGClient::escapeString(char *to, const char *from, size_t length)
+size_t CPGClient::escapeString(std::string &to, const std::string &from)
 {
-	return PQescapeString(to, from, length);
+	size_t length = from.length();
+	size_t toLength = length*2+1;
+	char *pszTo = new char[toLength];
+    memset(pszTo, 0, toLength);
+	size_t nSize = PQescapeString(pszTo, from.c_str(), length);
+	to = std::string(pszTo, nSize);
+	if (pszTo) {
+		delete[] pszTo;
+	}
+	return nSize;
 }
 
 void CPGClient::setTimeout(int nTimeout)

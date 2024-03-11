@@ -62,17 +62,20 @@ void CPGConnectionPool::setTimeout(int nTimeout)
     m_nTimeout = nTimeout;
 }
 
-CPGConnectionPool::ConnItem *CPGConnectionPool::getConnection(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t nTimeout)
+CPGConnectionPool::Connection CPGConnectionPool::getConnection(std::string &host, std::string &port, std::string &username, std::string &password, std::string &dbName, uint32_t nTimeout, uint32_t SSL)
 {
-    std::string sUrl = "postgreSQL://" + host + ":" + port + "/" + dbName +"?" + "user=" + username + "&password=" + password;
+    std::string sUrl = "postgresql://" + host + ":" + port + "/" + dbName +"?" + "user=" + username + "&password=" + password;
     std::lock_guard<std::mutex> guard(m_mutex);
 
+	Connection conn;
     MapUseabledConnection::iterator iter = m_mapUseableConn.find(sUrl);
     if(iter != m_mapUseableConn.end()) {
         ListUseabledConnection *pUseableConnList = &(iter->second);
         if(pUseableConnList->empty()) {
 			if(m_listUseableConn.empty()) {
-				return NULL;
+				conn.pConnItem = nullptr;
+				conn.sError = "PG Connection Pool has not idle connection.";
+				return conn;
 			}
 		} else {
             int index = pUseableConnList->front();
@@ -80,10 +83,15 @@ CPGConnectionPool::ConnItem *CPGConnectionPool::getConnection(std::string &host,
             ConnItem *pItem = m_vecConnPool[index];
             pItem->eState = eConn_Used;
 			++m_nUsedConnectionCnt;
-            return pItem;
+			conn.pConnItem = pItem;
+			conn.sError = "";
+			conn.sConnectionURL = pItem->PGClient.getConnectionURL();
+            return conn;
         }
     } else if(m_listUseableConn.empty()) {
-        return NULL;
+        conn.pConnItem = nullptr;
+		conn.sError = "PG Connection Pool has not idle connection.";
+		return conn;
     }
 
     int index = m_listUseableConn.front();
@@ -99,10 +107,13 @@ CPGConnectionPool::ConnItem *CPGConnectionPool::getConnection(std::string &host,
 		if(nTimeout > CPGClient::m_nDefaultTimeout) {
 			pItem->PGClient.setTimeout(nTimeout);
 		}
-		if( !pItem->PGClient.connect(host, port, username, password, dbName))
+		if( !pItem->PGClient.connect(host, port, username, password, dbName, SSL))
 		{
+			conn.pConnItem = nullptr;
+			conn.sError = pItem->PGClient.getErrorMessage();
+			conn.sConnectionURL = pItem->PGClient.getConnectionURL();
 			delete pItem;
-			return NULL;
+			return conn;
 		}
 
 		m_listUseableConn.pop_front();
@@ -110,24 +121,31 @@ CPGConnectionPool::ConnItem *CPGConnectionPool::getConnection(std::string &host,
 
 		m_vecConnPool[index] = pItem;
 		++m_nUsedConnectionCnt;
-		return pItem;
+
+		conn.pConnItem = pItem;
+		conn.sError = "";
+		conn.sConnectionURL = pItem->PGClient.getConnectionURL();
+        return conn;
 	}
 
-    return NULL;
+    conn.pConnItem = nullptr;
+	conn.sError = "PG Connection Pool has not idle connection.";
+	return conn;
 }
 
 void CPGConnectionPool::returnConnection(ConnItem *pConnItem)
 {    
     if(!pConnItem)
 		return;
+    
+	std::lock_guard<std::mutex> guard(m_mutex);
 
 	std::string sKey = pConnItem->sKey;
 	int index = pConnItem->nPoolIndex;
 	pConnItem->nLastAccessedTime = time(NULL);
 	pConnItem->eState  = eConn_Unused;
 	--m_nUsedConnectionCnt;
-    
-	std::lock_guard<std::mutex> guard(m_mutex);
+	
 	if (!pConnItem->PGClient.getStatus()) {
 		removeConnection(pConnItem);
 		return;
