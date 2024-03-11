@@ -8,6 +8,8 @@
 #include "libpublic/workpool/worker.h"
 #include "libpublic/workpool/workerPool.h"
 #include "libpublic/workpool/header.h"
+#include <thread>
+#include "libpublic/localtime.h"
 //#include "libpublic/byteBuffer.h"
 
 using namespace std;
@@ -74,6 +76,9 @@ int main(int argc, const char** argv) {
     workerpool->AddTask(p1);
     workerpool->AddTask(p2);
     workerpool->AddTask(p3);
+
+    CLocaltime clocaltime;
+    std::cout << "=====stm.is_dst= " << clocaltime.getDaylightActive() << std::endl;
 
     while(1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

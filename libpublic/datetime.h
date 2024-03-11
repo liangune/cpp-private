@@ -19,6 +19,7 @@
 #endif
 
 #include <string>
+#include "localtime.h"
 
 static char DEFAULT_DATETIME_FORMAT[50]= "%Y-%m-%d %H:%M:%S";
 
@@ -120,6 +121,8 @@ public:
     * @return       返回字符串格式的时间 如: 2018-02-08 08:48:14 
     */
     std::string getStrTime(const char *format = DEFAULT_DATETIME_FORMAT) const;
+
+    std::string getUTCStrTime(const char *format = DEFAULT_DATETIME_FORMAT) const;
 
     time_t operator-(const CDatetime &right);
     bool operator==(const CDatetime &right);

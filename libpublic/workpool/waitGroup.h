@@ -37,11 +37,17 @@ public:
         m_cond.wait(lock, [&]() {return this->m_nCounter.load() <= 0;});
     }
 
+    void Reset() {
+        m_nCounter = 0;
+    }
+
 private:
     std::mutex m_mutex;
     std::atomic<int> m_nCounter;
     std::condition_variable m_cond;
 };
+
+typedef std::shared_ptr<WaitGroup> WaitGroupPtr;
 
 }
 

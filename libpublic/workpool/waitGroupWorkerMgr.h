@@ -9,36 +9,47 @@
 #include "waitGroup.h"
 #include "waitGroupWorker.h"
 
-namespace Sync{
+namespace Sync {
 
 class WaitGroupWorkerMgr
 {
 public:
-    using VecWorker = std::vector<WaitGroupWorker*>;
+    using VecWorker = std::vector<WaitGroupWorkerPtr>;
 public:
     ~WaitGroupWorkerMgr();
 	WaitGroupWorkerMgr();
 
-    void Init(uint32_t nWorkerCnt, WaitGroup * wg, IHandleFactory *pHandleFactory = nullptr);
+    void Init(const uint32_t nWorkerCnt, IHandleFactory *pHandleFactory = nullptr);
     void Start();
     void Stop();
 
-    WaitGroupWorker* CreateWorker();
+    WaitGroupWorkerPtr CreateWorker();
     void InitWaitGroupWorker();
 
     uint32_t GetWorkerCount();
-    void SetWorkerCount(uint32_t nCount);
+    void SetWorkerCount(const uint32_t nCount);
+
+    uint32_t GetWorkerMaxTaskCount();
+    void SetWorkerMaxTaskCount(const uint32_t nCount);
+    void EnableMaxTaskCount();
 
     uint32_t GetTaskCount();
     uint32_t GetTaskFailedCount();
     
 	void AddTask(ShareptrTask pTask);
-    void TaskComplete();
     void TaskCompleteStatus(TaskStatus nStatus);
+
+    void Reset();
+    void ResetTaskFailedCount();
+    void ResetTaskCount();
+    void Wait();
+
 private:
 	uint32_t m_nWorkerCount;
 	uint32_t m_nWorkerIndex;
 
+    bool m_isEnableMaxTaskCount;
+    uint32_t m_nWorkerMaxTaskCount;
     std::atomic<uint32_t> m_nTaskCount;
     std::atomic<uint32_t> m_nTaskFailedCount;
     
@@ -46,8 +57,13 @@ private:
     std::mutex m_mutex;
 
     IHandleFactory *m_pHandleFactory;
-    WaitGroup *m_pWaitGroup;
+    WaitGroupPtr m_waitGroupPtr;
+
+    std::condition_variable m_queueCond;
+    
 };
+
+typedef std::shared_ptr<WaitGroupWorkerMgr> WaitGroupWorkerMgrPtr;
 
 }
 

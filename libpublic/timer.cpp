@@ -17,7 +17,6 @@ Timer::Timer()
 {
     m_nNextTime = 0;
     m_nDuration = 0; 
-    m_pTimerCallback = NULL;
     m_nType = eTimerTypeLoop;
 }
 
@@ -26,16 +25,12 @@ Timer::Timer(eTimerType type)
     m_nType = type;
     m_nNextTime = 0;
     m_nDuration = 0; 
-    m_pTimerCallback = NULL;
 }
 
 
 Timer::~Timer() 
 {
-    if(m_pTimerCallback != NULL) {
-        delete m_pTimerCallback;
-        m_pTimerCallback = NULL;
-    }
+
 }
 
 void Timer::setType(eTimerType type) 
@@ -65,7 +60,7 @@ void Timer::setTimer(uint64_t nDuration, CallbackFunc func, void *arg)
     m_nDuration = nDuration;
     m_nSortTime = now + nDuration;
 
-    m_pTimerCallback = new Callback(func, arg);
+    m_pTimerCallback = std::make_shared<Callback>(func, arg);
 }
 
 void Timer::setTimerAfter(uint64_t nAfterTime, uint64_t nDuration, CallbackFunc func, void *arg)
@@ -75,7 +70,27 @@ void Timer::setTimerAfter(uint64_t nAfterTime, uint64_t nDuration, CallbackFunc 
     m_nDuration = nDuration;
     m_nSortTime = nAfterTime + now + nDuration;
 
-    m_pTimerCallback = new Callback(func, arg);
+    m_pTimerCallback = std::make_shared<Callback>(func, arg);
+}
+
+void Timer::setTimer(uint64_t nDuration, const CallbackFunctor func, void *arg)
+{
+    uint64_t now = getMillisecond();
+    m_nNextTime = now;
+    m_nDuration = nDuration;
+    m_nSortTime = now + nDuration;
+
+    m_pTimerCallback = std::make_shared<Callback>(func, arg);
+}
+
+void Timer::setTimerAfter(uint64_t nAfterTime, uint64_t nDuration, const CallbackFunctor func, void *arg)
+{
+    uint64_t now = getMillisecond();
+    m_nNextTime = nAfterTime + now;
+    m_nDuration = nDuration;
+    m_nSortTime = nAfterTime + now + nDuration;
+
+    m_pTimerCallback = std::make_shared<Callback>(func, arg);
 }
 
 void Timer::reset()

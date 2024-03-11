@@ -1,13 +1,9 @@
-/*************************************************************************
-	> Date:   2020-12-08
-	> Author: liangjun
-	> Desc:   线程池
-*************************************************************************/
-#include "workerPool.h"
+#include "batchWorkerMgr.h"
 #include "workerFactory.h"
 #include "handleFactory.h"
+#include "batchTaskListFactory.h"
 
-WorkerPool::WorkerPool()
+BatchWorkerMgr::BatchWorkerMgr()
 {
     m_nWorkerIndex = 0;
     m_nWorkerCount = 1;
@@ -16,12 +12,10 @@ WorkerPool::WorkerPool()
     m_isEnableMaxTaskCount = false;
     m_nWorkerMaxTaskCount = DefaultWorkerMaxTaskCount;
     m_nTaskCount = 0;
-    m_nTaskFailedCount = 0;
     m_taskHashFunc = nullptr;
-    m_TaskComleteCallback = nullptr;
 }
 
-WorkerPool::~WorkerPool()
+BatchWorkerMgr::~BatchWorkerMgr()
 {
     if (m_pHandleFactory != nullptr) {
         delete m_pHandleFactory;
@@ -36,20 +30,21 @@ WorkerPool::~WorkerPool()
     m_vecWorker.clear();
 }
 
-void WorkerPool::Init(IWorkerFactory *pWorkerFactory, uint32_t nWorkerCnt, IHandleFactory *pHandleFactory)
+void BatchWorkerMgr::Init(IWorkerFactory *pWorkerFactory, uint32_t nWorkerCnt, IBatchTaskListFactory *pBatchTaskListFactory, IHandleFactory *pHandleFactory)
 {
     m_nWorkerCount = nWorkerCnt;
     m_pWorkerFactory = pWorkerFactory;
+    m_pBatchTaskListFactory = pBatchTaskListFactory;
     m_pHandleFactory = pHandleFactory;
 }
 
-void WorkerPool::Start()
+void BatchWorkerMgr::Start()
 {
     for(uint32_t i = 0; i < m_nWorkerCount; i++)
     {
-        WorkerPtr p = m_pWorkerFactory->GetWorkerPtr();
+        BatchWorkerPtr p = m_pWorkerFactory->GetBatchWorkerPtr();
         p->SetIndex(i);
-
+        
         if(m_pHandleFactory != nullptr) {
             HandleInterfacePtr handPtr = m_pHandleFactory->GetHandlePtr();
             handPtr->Init();
@@ -57,92 +52,75 @@ void WorkerPool::Start()
         }
 
         if (m_isEnableMaxTaskCount) {
-            auto f = std::bind(&WorkerPool::TaskCompleteStatus, this, std::placeholders::_1);
-            p->SetTaskCompleteStatusFunc(f);
+            auto f = std::bind(&BatchWorkerMgr::TaskComplete, this);
+            p->SetTaskCompleteFunc(f);
         }
+
+        if(m_pBatchTaskListFactory != nullptr) {
+            BatchTaskListInterfacePtr taskListPtr = m_pBatchTaskListFactory->GetBatchTaskListPtr();
+            p->SetBatchTaskListPtr(taskListPtr);
+        }
+        p->SetMaxBatch(m_nMaxBatch);
+        p->SetWaitTimeout(m_nWaitTimeout);
         
         p->Start();
         m_vecWorker.push_back(p);
     }
 }
 
-void WorkerPool::Stop()
+void BatchWorkerMgr::Stop()
 {
     for(uint32_t i = 0; i < m_nWorkerCount; i++)
     {
-        WorkerPtr p = m_vecWorker[i];
+        BatchWorkerPtr p = m_vecWorker[i];
         p->Stop();
     }
 }
 
-uint32_t WorkerPool::GetWorkerCount()
+uint32_t BatchWorkerMgr::GetWorkerCount()
 {
     return m_nWorkerCount;
 }
 
-void WorkerPool::SetWorkerCount(const uint32_t nCount)
+void BatchWorkerMgr::SetWorkerCount(const uint32_t nCount)
 {
     m_nWorkerCount = nCount;
 }
 
-uint32_t WorkerPool::GetWorkerMaxTaskCount()
+uint32_t BatchWorkerMgr::GetWorkerMaxTaskCount()
 {
     return m_nWorkerMaxTaskCount;
 }
 
-void WorkerPool::SetWorkerMaxTaskCount(const uint32_t nCount)
+void BatchWorkerMgr::SetWorkerMaxTaskCount(const uint32_t nCount)
 {
     m_nWorkerMaxTaskCount = nCount;
 }
 
-void WorkerPool::EnableMaxTaskCount()
+void BatchWorkerMgr::EnableMaxTaskCount()
 {
     m_isEnableMaxTaskCount = true;
 }
 
-uint32_t WorkerPool::GetTaskCount()
+uint32_t BatchWorkerMgr::GetTaskCount()
 {
     return m_nTaskCount.load();
 }
 
-uint32_t WorkerPool::GetTaskFailedCount()
-{
-    return m_nTaskFailedCount.load();
-}
-
-void WorkerPool::ResetTaskFailedCount()
-{
-    m_nTaskFailedCount = 0;
-}
-
-void WorkerPool::SetTaskHashFunc(TaskHashFunc func)
+void BatchWorkerMgr::SetTaskHashFunc(TaskHashFunc func)
 {
     m_taskHashFunc = func;
 }
 
-void WorkerPool::TaskCompleteStatus(TaskStatus nStatus)
+void BatchWorkerMgr::TaskComplete()
 {
     m_nTaskCount--;
-
-    if (m_isEnableMaxTaskCount) {   
+    if (m_isEnableMaxTaskCount) {  
         m_queueCond.notify_one();
     }
-
-    if (m_TaskComleteCallback != nullptr) {
-        m_TaskComleteCallback();
-    }
-
-    if (nStatus == TaskStatusFailed) {
-        m_nTaskFailedCount++;
-    }
 }
 
-void WorkerPool::SetTaskCompleteCallback(TaskCompleteFunc callback)
-{
-    m_TaskComleteCallback = callback;
-}
-
-void WorkerPool::AddTask(ShareptrTask pTask)
+void BatchWorkerMgr::AddTask(BatchTaskInterfacePtr pTask)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_nWorkerIndex++;
@@ -150,23 +128,23 @@ void WorkerPool::AddTask(ShareptrTask pTask)
         m_nWorkerIndex = 0;
     }
 
-    WorkerPtr p = m_vecWorker[m_nWorkerIndex];
+    BatchWorkerPtr p = m_vecWorker[m_nWorkerIndex];
     if(p == NULL)
         return;
 
     if (m_isEnableMaxTaskCount) {    
         m_queueCond.wait(lock, [this]{return !(this->m_nTaskCount.load() > m_nWorkerMaxTaskCount * m_nWorkerCount);});
+        m_nTaskCount++;
     }
 
     pTask->SetIndex(p->GetIndex());
     p->AddTask(pTask);
-    m_nTaskCount++;
 }
 
-void WorkerPool::AddTask(const std::string sHashKey, ShareptrTask pTask)
+void BatchWorkerMgr::AddTask(const std::string sHashKey, BatchTaskInterfacePtr pTask)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    WorkerPtr p = nullptr;
+    BatchWorkerPtr p = nullptr;
     if (m_taskHashFunc != nullptr) {
         uint32_t nWorkerIndex = m_taskHashFunc(sHashKey, m_nWorkerCount);
         if(nWorkerIndex >= m_nWorkerCount) {
@@ -187,9 +165,30 @@ void WorkerPool::AddTask(const std::string sHashKey, ShareptrTask pTask)
 
     if (m_isEnableMaxTaskCount) {    
         m_queueCond.wait(lock, [this]{return !(this->m_nTaskCount.load() > m_nWorkerMaxTaskCount * m_nWorkerCount);});
+        m_nTaskCount++;
     }
 
     pTask->SetIndex(p->GetIndex());
     p->AddTask(pTask);
-    m_nTaskCount++;
+}
+
+
+
+void BatchWorkerMgr::SetMaxBatch(uint32_t nMaxBatch)
+{
+    m_nMaxBatch = nMaxBatch;
+}
+
+uint32_t BatchWorkerMgr::GetMaxBatch() {
+    return m_nMaxBatch;
+}
+
+void BatchWorkerMgr::SetWaitTimeout(uint32_t nWaitTimeout)
+{
+    m_nWaitTimeout = nWaitTimeout;
+}
+
+uint32_t BatchWorkerMgr::GetWaitTimeout()
+{
+    return m_nWaitTimeout;
 }

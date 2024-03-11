@@ -13,8 +13,10 @@ if(MSVC)
     endif()
 elseif(UNIX)
     set(PLATFORM linux)
-    if(CMAKE_SIZEOF_VOID_P)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(ARCHITECTURE x64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        set(ARCHITECTURE arm64)
     else()
         set(ARCHITECTURE x86)
     endif()
@@ -105,12 +107,12 @@ if(MSVC)
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-
+        pthread
     )
 
     # 静态库
     set(LINK_ARCHIVES
-    
+        ${LINK_ARCHIVES_DIR}/libpublic/libpublic.a
     )
 endif()
 

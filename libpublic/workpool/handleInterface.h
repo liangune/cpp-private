@@ -20,4 +20,6 @@ public:
 
 };
 
+typedef std::shared_ptr<HandleInterface> HandleInterfacePtr;
+
 #endif // !_WORK_POOL_HANDLE_INTERFACE_H_

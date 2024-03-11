@@ -9,17 +9,13 @@ WaitGroupWorker::WaitGroupWorker()
    m_isEnable = false;
    m_isClosed = false;
    m_pHandle = nullptr;
-   m_taskCompleteFunc = nullptr;
    m_taskCompleteStatusFunc = nullptr;
 }
 
 WaitGroupWorker::~WaitGroupWorker()
 {
-    if (m_pHandle != nullptr) {
-        delete m_pHandle;
-        m_pHandle = nullptr;
-    }
- }
+
+}
 
 void WaitGroupWorker::Run()
 {
@@ -32,12 +28,10 @@ void WaitGroupWorker::Run()
 }
 
 void WaitGroupWorker::Handle()
-{
+{  
     ShareptrTask ptrTask = std::move(m_queue.pop());
     ptrTask->Execute(this);
-    if (m_taskCompleteFunc != nullptr) {
-        m_taskCompleteFunc();
-    }
+
     if (m_taskCompleteStatusFunc != nullptr) {
         m_taskCompleteStatusFunc(ptrTask->GetStatus());
     }
@@ -50,7 +44,7 @@ void WaitGroupWorker::AddTask(ShareptrTask pTask)
 
 void WaitGroupWorker::Start()
 {
-	m_isEnable.store(true);
+    m_isEnable.store(true);
     std::thread th(&WaitGroupWorker::Run, std::ref(*this));
     th.detach();
 }
@@ -60,7 +54,12 @@ void WaitGroupWorker::Stop()
     m_isEnable.store(false);
 }
 
-void WaitGroupWorker::SetIndex(uint32_t nIndex)
+bool WaitGroupWorker::IsClose()
+{
+    return m_isClosed.load();
+}
+
+void WaitGroupWorker::SetIndex(const uint32_t nIndex)
 {
     m_nIndex = nIndex;
 }
@@ -82,20 +81,26 @@ size_t WaitGroupWorker::GetQueueSize()
 
 void WaitGroupWorker::SetHandle(HandleInterface *handPtr)
 {
-    m_pHandle = handPtr;
+    HandleInterfacePtr it(handPtr);
+    m_pHandle = it;
 }
 
 HandleInterface *WaitGroupWorker::GetHandle()
 {
+    return m_pHandle.get();
+}
+
+void WaitGroupWorker::SetHandlePtr(HandleInterfacePtr handPtr)
+{
+    m_pHandle = handPtr;
+}
+
+HandleInterfacePtr WaitGroupWorker::GetHandlePtr()
+{
     return m_pHandle;
 }
 
-void WaitGroupWorker::SetTaskCompleteFunc(TaskCompleteFunc func)
-{
-    m_taskCompleteFunc = func;
-}
-
-void WaitGroupWorker::SetTaskCompleteStatuFunc(TaskCompleteStatusFunc func)
+void WaitGroupWorker::SetTaskCompleteStatusFunc(TaskCompleteStatusFunc func)
 {
     m_taskCompleteStatusFunc = func;
 }

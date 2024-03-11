@@ -13,5 +13,12 @@
 #include "worker.h"
 #include "workerFactory.h"
 #include "workerPool.h"
+#include "waitGroup.h"
+#include "waitGroupWorker.h"
+#include "waitGroupWorkerMgr.h"
+#include "batchWorkerMgr.h"
+#include "batchTaskInterface.h"
+#include "batchTaskListInterface.h"
+#include "batchTaskListFactory.h"
 
 #endif // !_WORK_POOL_HEADER_H_

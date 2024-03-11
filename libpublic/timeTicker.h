@@ -12,17 +12,24 @@
 #include <thread>
 #include <atomic>
 #include <stdint.h>
+#include "timer.h"
 
-class Timer;
 class TimeTicker {
 public:
-    typedef std::list<Timer*> LIST_TIMER;
+    typedef std::list<TimerPtr> LIST_TIMER;
     typedef std::map<uint64_t, LIST_TIMER> MAP_TIMER;
 public:
     TimeTicker();
+    ~TimeTicker();
     void stop();
     void start();
-    void addTimer(Timer* pTimer);
+    
+    // 回调函数为静态函数可使用, 回调函数为函数对象windows平台可用, linux平台调用会崩溃
+    void addTimer(Timer* pTimer);  // DEPRECATED
+
+    // 回调函数为函数对象时使用
+    void addTimer(uint64_t nDuration, const CallbackFunctor func, void *arg);
+    void addTimerAfter(uint64_t nAfterTime, uint64_t nDuration, const CallbackFunctor func, void *arg);
 
 private:
 	void run();
@@ -36,5 +43,6 @@ private:
     MAP_TIMER m_mapTimer;
 };
 
+using TimeTickerPtr = std::shared_ptr<TimeTicker>;
 
 #endif //!_TIME_TICKER_H_

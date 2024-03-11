@@ -6,8 +6,10 @@
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
+
 #include <stdint.h>
 #include "callback.h"
+#include <memory>
 
 class Timer {
 public:
@@ -28,11 +30,14 @@ public:
     void setTimer(uint64_t nDuration, CallbackFunc func, void *arg);
     void setTimerAfter(uint64_t nAfterTime, uint64_t nDuration, CallbackFunc func, void *arg);
 
+    void setTimer(uint64_t nDuration, const CallbackFunctor func, void *arg);
+    void setTimerAfter(uint64_t nAfterTime, uint64_t nDuration, const CallbackFunctor func, void *arg);
+
     void reset();
 
     static uint64_t getMillisecond();
 
-    Callback *m_pTimerCallback;
+    CallbackPtr m_pTimerCallback;
 
 private:
     uint64_t m_nSortTime;
@@ -41,6 +46,6 @@ private:
     TimerType m_nType;
 };
 
-
+using TimerPtr = std::shared_ptr<Timer>;
 
 #endif //!_TIMER_H_

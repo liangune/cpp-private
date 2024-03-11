@@ -11,15 +11,12 @@ Worker::Worker()
    m_isEnable = false;
    m_isClosed = false;
    m_pHandle = nullptr;
-   m_taskCompleteFunc = nullptr;
+   m_taskCompleteStatusFunc = nullptr;
 }
 
 Worker::~Worker()
 {
-    if (m_pHandle != nullptr) {
-        delete m_pHandle;
-        m_pHandle = nullptr;
-    }
+
 }
 
 void Worker::Run()
@@ -36,8 +33,8 @@ void Worker::Handle()
 {
     ShareptrTask ptrTask = std::move(m_queue.pop());
     ptrTask->Execute(this);
-    if (m_taskCompleteFunc != nullptr) {
-        m_taskCompleteFunc();
+    if (m_taskCompleteStatusFunc != nullptr) {
+        m_taskCompleteStatusFunc(ptrTask->GetStatus());
     }
 }
 
@@ -58,7 +55,7 @@ void Worker::Stop()
     m_isEnable.store(false);
 }
 
-void Worker::SetIndex(uint32_t nIndex)
+void Worker::SetIndex(const uint32_t nIndex)
 {
     m_nIndex = nIndex;
 }
@@ -80,15 +77,26 @@ size_t Worker::GetQueueSize()
 
 void Worker::SetHandle(HandleInterface *handPtr)
 {
-    m_pHandle = handPtr;
+    HandleInterfacePtr it(handPtr);
+    m_pHandle = it;
 }
 
 HandleInterface *Worker::GetHandle()
 {
+    return m_pHandle.get();
+}
+
+void Worker::SetHandlePtr(HandleInterfacePtr handPtr)
+{
+    m_pHandle = handPtr;
+}
+
+HandleInterfacePtr Worker::GetHandlePtr()
+{
     return m_pHandle;
 }
 
-void Worker::SetTaskCompleteFunc(TaskCompleteFunc func)
+void Worker::SetTaskCompleteStatusFunc(TaskCompleteStatusFunc func)
 {
-    m_taskCompleteFunc = func;
+    m_taskCompleteStatusFunc = func;
 }

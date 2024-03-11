@@ -4,12 +4,16 @@
 	> Desc:   定时检测回调
 *************************************************************************/
 
-#include "timer.h"
 #include "timeTicker.h"
 
 TimeTicker::TimeTicker() : m_nTimerCnt(0), m_isEnable(false)
 {
 
+}
+
+TimeTicker::~TimeTicker()
+{
+    stop();
 }
 
 void TimeTicker::stop()
@@ -18,14 +22,12 @@ void TimeTicker::stop()
     std::lock_guard<std::mutex> guard(m_mutex);
 
     MAP_TIMER::iterator mapIt = m_mapTimer.begin();
-    for (; mapIt != m_mapTimer.begin(); mapIt++) {            
+    for (; mapIt != m_mapTimer.end(); mapIt++) {            
         LIST_TIMER &list = mapIt->second;
         LIST_TIMER::iterator listIt = list.begin();
         for(; listIt != list.end();) {
-            Timer *p = *listIt;
+            TimerPtr p = *listIt;
             if(p != NULL) {
-                delete p;
-                p = NULL;
                 m_nTimerCnt--;
 #ifdef _MSC_VER
                 listIt = list.erase(listIt);
@@ -42,24 +44,65 @@ void TimeTicker::stop()
 }
 
 void TimeTicker::addTimer(Timer* pTimer)
-{   
+{  
     if(pTimer==NULL)
         return;
 
+    TimerPtr timerPtr(pTimer);
+    uint64_t nSortTime = timerPtr->getSortTime();
+    
     std::lock_guard<std::mutex> guard(m_mutex);
-
-    uint64_t nSortTime = pTimer->getSortTime();
     MAP_TIMER::iterator mapIt = m_mapTimer.find(nSortTime);
     if(mapIt != m_mapTimer.end()) {
         LIST_TIMER &list = mapIt->second;
-        list.push_back(pTimer);
+        list.push_back(timerPtr);
     } else {
         LIST_TIMER list;
-        list.push_back(pTimer);
+        list.push_back(timerPtr);
         m_mapTimer[nSortTime] = list;
     }
 
     m_nTimerCnt++;
+}
+
+void TimeTicker::addTimer(uint64_t nDuration, const CallbackFunctor func, void *arg)
+{  
+    TimerPtr timerPtr(std::make_shared<Timer>());
+    timerPtr->setTimer(nDuration, func, arg);
+    uint64_t nSortTime = timerPtr->getSortTime();
+	
+    std::lock_guard<std::mutex> guard(m_mutex);
+    MAP_TIMER::iterator mapIt = m_mapTimer.find(nSortTime);
+    if(mapIt != m_mapTimer.end()) {
+        LIST_TIMER &list = mapIt->second;
+        list.push_back(timerPtr);
+    } else {
+        LIST_TIMER list;
+        list.push_back(timerPtr);
+        m_mapTimer[nSortTime] = list;
+    }
+
+    m_nTimerCnt++;
+}
+
+void TimeTicker::addTimerAfter(uint64_t nAfterTime, uint64_t nDuration, const CallbackFunctor func, void *arg)
+{
+    TimerPtr timerPtr(std::make_shared<Timer>());
+    timerPtr->setTimerAfter(nAfterTime, nDuration, func, arg);
+    uint64_t nSortTime = timerPtr->getSortTime();
+
+    std::lock_guard<std::mutex> guard(m_mutex);
+    MAP_TIMER::iterator mapIt = m_mapTimer.find(nSortTime);
+    if(mapIt != m_mapTimer.end()) {
+        LIST_TIMER &list = mapIt->second;
+        list.push_back(timerPtr);
+    } else {
+        LIST_TIMER list;
+        list.push_back(timerPtr);
+        m_mapTimer[nSortTime] = list;
+    }
+
+    m_nTimerCnt++;  
 }
 
 void TimeTicker::start() 
@@ -80,7 +123,7 @@ void TimeTicker::run()
             LIST_TIMER &list = mapIt->second;
             LIST_TIMER::iterator listIt = list.begin();
             for(; listIt != list.end();) {
-                Timer *p = *listIt;
+                TimerPtr p = *listIt;
                 if(p == NULL) {
                     listIt++;
                     continue;
@@ -92,13 +135,10 @@ void TimeTicker::run()
                 }
 
                 if(p->m_pTimerCallback) {
-                    void *arg = p->m_pTimerCallback->m_pArg;
-                    p->m_pTimerCallback->m_pFunc(arg);
+                    p->m_pTimerCallback->Execute();
                 }
 
                 if(p->getType() == Timer::eTimerTypeOnce) {
-                    delete p;
-                    p = NULL;
                     m_nTimerCnt--;
 #ifdef _MSC_VER
                     listIt = list.erase(listIt);

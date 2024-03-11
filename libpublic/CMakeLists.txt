@@ -18,8 +18,10 @@ if(MSVC)
     endif()
 elseif(UNIX)
     set(PLATFORM linux)
-    if(CMAKE_SIZEOF_VOID_P)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(ARCHITECTURE x64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        set(ARCHITECTURE arm64)
     else()
         set(ARCHITECTURE x86)
     endif()
@@ -126,7 +128,8 @@ if(MSVC)
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-        pthread ${LINK_LIBS_DIR}/libuuid/libuuid.so
+        pthread
+        ${LINK_LIBS_DIR}/libuuid/libuuid.so
     )
 
     # 静态库
@@ -197,7 +200,7 @@ file(GLOB CURRENT_INCLUDE
 file(GLOB WORKPOOL_INCLUDE 
     ${CMAKE_CURRENT_SOURCE_DIR}/workpool/*.h)
 
-add_custom_target(copy)
+add_custom_target(copy_libpublic)
 
 set(PROJECT_DIR libpublic)
 if(NOT EXISTS ${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR})
@@ -206,7 +209,7 @@ if(NOT EXISTS ${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR})
     file(MAKE_DIRECTORY "${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}/workpool")
 endif()
 
-add_custom_command(TARGET copy 
+add_custom_command(TARGET copy_libpublic 
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E 
     copy ${CURRENT_INCLUDE} ${INCLUDE_OUTPUT_DIR}/${PROJECT_DIR}/

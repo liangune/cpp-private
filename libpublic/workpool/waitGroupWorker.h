@@ -16,7 +16,7 @@ public:
     using ShareptrQueue = SyncQueue<std::shared_ptr<TaskInterface>>;
 public:
     WaitGroupWorker();
-    virtual ~WaitGroupWorker();
+    ~WaitGroupWorker();
 
     virtual void Run();
     virtual void Handle();
@@ -24,8 +24,9 @@ public:
     void AddTask(ShareptrTask p);
     void Start();
     void Stop();
+    bool IsClose();
 
-    void SetIndex(uint32_t nIndex);
+    void SetIndex(const uint32_t nIndex);
     uint32_t GetIndex();
     
     bool IsQueueEmpty();
@@ -34,17 +35,21 @@ public:
     void SetHandle(HandleInterface *handPtr);
     HandleInterface *GetHandle();
 
-    void SetTaskCompleteFunc(TaskCompleteFunc func);
-    void SetTaskCompleteStatuFunc(TaskCompleteStatusFunc func);
+    void SetHandlePtr(HandleInterfacePtr handPtr);
+    HandleInterfacePtr GetHandlePtr();
+
+    void SetTaskCompleteStatusFunc(TaskCompleteStatusFunc func);
+    
 protected:
     ShareptrQueue m_queue;
     std::atomic<bool> m_isEnable;
     std::atomic<bool> m_isClosed;
     uint32_t m_nIndex;
-    HandleInterface *m_pHandle;
-    TaskCompleteFunc m_taskCompleteFunc; 
+    HandleInterfacePtr m_pHandle;
     TaskCompleteStatusFunc m_taskCompleteStatusFunc;
 };
+
+typedef std::shared_ptr<WaitGroupWorker> WaitGroupWorkerPtr;
 
 }
 #endif // !_WAIT_GROUP_WORKER_H_

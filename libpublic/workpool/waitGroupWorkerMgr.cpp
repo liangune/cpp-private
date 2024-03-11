@@ -7,10 +7,12 @@ WaitGroupWorkerMgr::WaitGroupWorkerMgr()
 {
     m_nWorkerIndex = 0;
     m_nWorkerCount = 1;
-    m_pHandleFactory = nullptr;
-    m_pWaitGroup = nullptr;
+    m_isEnableMaxTaskCount = false;
+    m_nWorkerMaxTaskCount = DefaultWorkerMaxTaskCount;
     m_nTaskCount = 0;
     m_nTaskFailedCount = 0;
+    m_pHandleFactory = nullptr;
+    m_waitGroupPtr = nullptr;
 }
 
 WaitGroupWorkerMgr::~WaitGroupWorkerMgr()
@@ -22,11 +24,11 @@ WaitGroupWorkerMgr::~WaitGroupWorkerMgr()
     Stop();
 }
 
-void WaitGroupWorkerMgr::Init(uint32_t nWorkerCnt, WaitGroup * wg, IHandleFactory *pHandleFactory)
+void WaitGroupWorkerMgr::Init(const uint32_t nWorkerCnt, IHandleFactory *pHandleFactory)
 {
     m_nWorkerCount = nWorkerCnt;
     m_pHandleFactory = pHandleFactory;
-    m_pWaitGroup = wg;
+    m_waitGroupPtr = std::make_shared<WaitGroup>();
     InitWaitGroupWorker();
 }
 
@@ -35,9 +37,24 @@ uint32_t WaitGroupWorkerMgr::GetWorkerCount()
     return m_nWorkerCount;
 }
 
-void WaitGroupWorkerMgr::SetWorkerCount(uint32_t nCount)
+void WaitGroupWorkerMgr::SetWorkerCount(const uint32_t nCount)
 {
     m_nWorkerCount = nCount;
+}
+
+uint32_t WaitGroupWorkerMgr::GetWorkerMaxTaskCount()
+{
+    return m_nWorkerMaxTaskCount;
+}
+
+void WaitGroupWorkerMgr::SetWorkerMaxTaskCount(const uint32_t nCount)
+{
+    m_nWorkerMaxTaskCount = nCount;
+}
+
+void WaitGroupWorkerMgr::EnableMaxTaskCount()
+{
+    m_isEnableMaxTaskCount = true;
 }
 
 uint32_t WaitGroupWorkerMgr::GetTaskCount()
@@ -50,24 +67,9 @@ uint32_t WaitGroupWorkerMgr::GetTaskFailedCount()
     return m_nTaskFailedCount.load();
 }
 
-void WaitGroupWorkerMgr::TaskComplete()
+WaitGroupWorkerPtr WaitGroupWorkerMgr::CreateWorker()
 {
-    m_nTaskCount--;
-    if (m_pWaitGroup != nullptr) {
-        m_pWaitGroup->Done();
-    }
-}
-
-void WaitGroupWorkerMgr::TaskCompleteStatus(TaskStatus nStatus)
-{
-    if (nStatus == TaskStatusFailed) {
-        m_nTaskFailedCount++;
-    }
-}
-
-WaitGroupWorker* WaitGroupWorkerMgr::CreateWorker()
-{
-	WaitGroupWorker* p = new WaitGroupWorker();
+	WaitGroupWorkerPtr p = std::make_shared<WaitGroupWorker>();
 	return p;
 }
 
@@ -75,20 +77,18 @@ void WaitGroupWorkerMgr::InitWaitGroupWorker()
 {
     for(uint32_t i = 0; i < m_nWorkerCount; i++)
     {
-        WaitGroupWorker *p = CreateWorker();
+        WaitGroupWorkerPtr p = CreateWorker();
         p->SetIndex(i);
-        m_vecWorker.push_back(p);
+        
         if(m_pHandleFactory != nullptr) {
-            HandleInterface *handPtr = m_pHandleFactory->GetHandle();
+            HandleInterfacePtr handPtr = m_pHandleFactory->GetHandlePtr();
             handPtr->Init();
-            p->SetHandle(handPtr);
+            p->SetHandlePtr(handPtr);
         }
 
-        auto f1 = std::bind(&WaitGroupWorkerMgr::TaskComplete, this);
-        p->SetTaskCompleteFunc(f1);
-
-        auto f2 = std::bind(&WaitGroupWorkerMgr::TaskCompleteStatus, this, std::placeholders::_1);
-        p->SetTaskCompleteStatuFunc(f2);
+        auto f = std::bind(&WaitGroupWorkerMgr::TaskCompleteStatus, this, std::placeholders::_1);
+        p->SetTaskCompleteStatusFunc(f);
+        m_vecWorker.push_back(p);
     }
 }
 
@@ -96,18 +96,18 @@ void WaitGroupWorkerMgr::Start()
 {
     for(uint32_t i = 0; i < m_nWorkerCount; i++)
     {
-        WaitGroupWorker *p = m_vecWorker[i];
+        WaitGroupWorkerPtr p = m_vecWorker[i];
         p->Start();
     }
 }
 
 void WaitGroupWorkerMgr::Stop()
 {
-    for(uint32_t i = 0; i < m_nWorkerCount; i++)
+    for(auto it = m_vecWorker.begin(); it != m_vecWorker.end();)
     {
-        WaitGroupWorker *p = m_vecWorker[i];
+        WaitGroupWorkerPtr p = *it;
         p->Stop();
-        delete p;
+        it = m_vecWorker.erase(it); 
     }
 }
 
@@ -119,16 +119,61 @@ void WaitGroupWorkerMgr::AddTask(ShareptrTask pTask)
         m_nWorkerIndex = 0;
     }
 
-    WaitGroupWorker *p = m_vecWorker[m_nWorkerIndex];
+    WaitGroupWorkerPtr p = m_vecWorker[m_nWorkerIndex];
     if(p == NULL)
         return;
+
+    if (m_isEnableMaxTaskCount) {    
+        m_queueCond.wait(lock, [this]{return !(this->m_nTaskCount.load() > m_nWorkerMaxTaskCount * m_nWorkerCount);});
+    }
 
     pTask->SetIndex(p->GetIndex());
     p->AddTask(pTask);
     m_nTaskCount++;
 
-    if (m_pWaitGroup != nullptr) {
-        m_pWaitGroup->Add();
+    if (m_waitGroupPtr != nullptr) {
+        m_waitGroupPtr->Add();
+    }
+}
+
+void WaitGroupWorkerMgr::TaskCompleteStatus(TaskStatus nStatus)
+{
+    m_nTaskCount--;
+
+    if (m_waitGroupPtr != nullptr) {
+        m_waitGroupPtr->Done();
+    }
+
+    if (nStatus == TaskStatusFailed) {
+        m_nTaskFailedCount++;
+    }
+
+    if (m_isEnableMaxTaskCount) {   
+        m_queueCond.notify_one();
+    }
+}
+
+void WaitGroupWorkerMgr::Reset()
+{
+    ResetTaskFailedCount();
+    ResetTaskCount();
+    m_waitGroupPtr->Reset();
+}
+
+void WaitGroupWorkerMgr::ResetTaskFailedCount()
+{
+    m_nTaskFailedCount = 0;
+}
+
+void WaitGroupWorkerMgr::ResetTaskCount()
+{
+    m_nTaskCount = 0;
+}
+
+void WaitGroupWorkerMgr::Wait()
+{
+    if (m_waitGroupPtr != nullptr) {
+        m_waitGroupPtr->Wait();
     }
 }
 

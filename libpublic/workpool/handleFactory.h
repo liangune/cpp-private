@@ -15,6 +15,7 @@ public:
 	IHandleFactory() {}
 	virtual ~IHandleFactory() {}
 	virtual HandleInterface * GetHandle() = 0;
+	virtual HandleInterfacePtr GetHandlePtr() = 0;
 };
 
 template<typename _Tp>
@@ -26,6 +27,12 @@ public:
 	virtual HandleInterface * GetHandle()
 	{
 		HandleInterface *handPtr = new _Tp();
+		return handPtr;
+	}
+
+	virtual HandleInterfacePtr GetHandlePtr()
+	{
+		HandleInterfacePtr handPtr(std::make_shared<_Tp>());
 		return handPtr;
 	}
 };

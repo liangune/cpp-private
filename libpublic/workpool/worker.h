@@ -29,7 +29,7 @@ public:
     void Start();
     void Stop();
 
-    void SetIndex(uint32_t nIndex);
+    void SetIndex(const uint32_t nIndex);
     uint32_t GetIndex();
     
     bool IsQueueEmpty();
@@ -38,14 +38,20 @@ public:
     void SetHandle(HandleInterface *handPtr);
     HandleInterface *GetHandle();
 
-    void SetTaskCompleteFunc(TaskCompleteFunc func);
+    void SetHandlePtr(HandleInterfacePtr handPtr);
+    HandleInterfacePtr GetHandlePtr();
+
+    void SetTaskCompleteStatusFunc(TaskCompleteStatusFunc func);
+
 protected:
     ShareptrQueue m_queue;
     std::atomic<bool> m_isEnable;
     std::atomic<bool> m_isClosed;
     uint32_t m_nIndex;
-    HandleInterface *m_pHandle;
-    TaskCompleteFunc m_taskCompleteFunc; 
+    HandleInterfacePtr m_pHandle;
+    TaskCompleteStatusFunc m_taskCompleteStatusFunc; 
 };
+
+typedef std::shared_ptr<Worker> WorkerPtr;
 
 #endif // !_WORKER_THREAD_H_
