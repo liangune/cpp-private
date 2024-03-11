@@ -32,12 +32,19 @@ private:
 
 public:
     Engine() = default;
-    Engine(int port, const std::string& host = "0.0.0.0");
+    Engine(unsigned int port, const std::string& host = "0.0.0.0");
 
     ~Engine();
 
+    bool Run();
     bool Start();
     void Stop();
+
+    // Start starts listening and serving HTTP requests.
+    bool Start(const std::string& host, unsigned int port);
+
+    // StartTLS starts listening and serving HTTPS (secure) requests.
+    bool StartTLS(const std::string& host, unsigned int port, const std::string &certFile, const std::string &keyFile);
 
     // Use attaches a global middleware to the router. ie. the middleware attached though Use() will be
     // included in the handlers chain for every single request. Even 404, 405, static files...
@@ -59,6 +66,8 @@ public:
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
     void AllowCORS();
 };
+
+typedef std::shared_ptr<Engine> EnginePtr;
 
 }
 

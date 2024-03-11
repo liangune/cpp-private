@@ -71,6 +71,11 @@ include_directories(
 
 #-------------------------------------------------------------------
 #-------------------------------Flags-------------------------------
+if(MSVC)
+    # 链接器生成exe时加入调试信息
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
+endif()
+
 #  c++编译选项
 if(MSVC)
 	set(CMAKE_CXX_FLAGS_DEBUG "-Wall /Ob0 /MDd /Zi")
@@ -101,6 +106,7 @@ if(MSVC)
     set(LINK_LIBS 
         ${LINK_LIBS_DIR}/openssl-1_1/libcrypto.lib
         ${LINK_LIBS_DIR}/openssl-1_1/libssl.lib
+        ${LINK_LIBS_DIR}/libnetwork/workflow-http/workflow-http.lib
     )
 
     # 静态库
@@ -110,8 +116,9 @@ if(MSVC)
 elseif(UNIX)
     # 动态库
     set(LINK_LIBS
-        ${LINK_LIBS_DIR_LINUX}/openssl-1_1/libcrypto.so
-        ${LINK_LIBS_DIR_LINUX}/openssl-1_1/libssl.so
+        ${LINK_LIBS_DIR}/openssl-1_1/libcrypto.so.1.1
+        ${LINK_LIBS_DIR}/openssl-1_1/libssl.so.1.1
+        ${LINK_LIBS_DIR}/libnetwork/workflow-http/libworkflow-http.so
 	    pthread
     )
 

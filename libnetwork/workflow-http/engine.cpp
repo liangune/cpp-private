@@ -3,7 +3,7 @@
 
 namespace workflowhttp {
 
-Engine::Engine(int port, const std::string& host) : port(port), host(host) {
+Engine::Engine(unsigned int port, const std::string& host) : port(port), host(host) {
 
 }
 
@@ -11,10 +11,45 @@ Engine::~Engine() {
     Stop();
 }
 
+bool Engine::Run() {
+    auto f = std::bind(&Engine::WFHandleHTTPRequest, this, std::placeholders::_1);
+    wfHttpServer = std::make_shared<WFHttpServer>(f);
+    if (wfHttpServer->start(host.c_str(), port) == 0){
+        RebuildHandlers();
+        return true;
+    }
+
+    return false;
+}
+
 bool Engine::Start() {
     auto f = std::bind(&Engine::WFHandleHTTPRequest, this, std::placeholders::_1);
     wfHttpServer = std::make_shared<WFHttpServer>(f);
     if (wfHttpServer->start(host.c_str(), port) == 0){
+        RebuildHandlers();
+        return true;
+    }
+
+    return false;
+}
+
+bool Engine::Start(const std::string& host, unsigned int port)
+{
+    auto f = std::bind(&Engine::WFHandleHTTPRequest, this, std::placeholders::_1);
+    wfHttpServer = std::make_shared<WFHttpServer>(f);
+    if (wfHttpServer->start(host.c_str(), port) == 0){
+        RebuildHandlers();
+        return true;
+    }
+
+    return false;
+}
+
+bool Engine::StartTLS(const std::string& host, unsigned int port, const std::string &certFile, const std::string &keyFile)
+{
+    auto f = std::bind(&Engine::WFHandleHTTPRequest, this, std::placeholders::_1);
+    wfHttpServer = std::make_shared<WFHttpServer>(f);
+    if (wfHttpServer->start(host.c_str(), port, certFile.c_str(), keyFile.c_str()) == 0){
         RebuildHandlers();
         return true;
     }

@@ -1,7 +1,10 @@
 #include "../engine.h"
 #include "../context.h"
 #include <iostream>
-//#include <unistd.h>
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
+#include "exceptionDump.h"
 
 workflowhttp::HandlerFunc Access()  {
     return [&](workflowhttp::Context *ctx) {
@@ -98,9 +101,16 @@ void process(WFHttpTask *server_task)
 
 }
 
+#define HTTPS
+
 int main(int argc, char *argv[]) 
 {
+#ifdef _MSC_VER
+    CExceptionDump dump;
+#endif
+
 #if 1
+#ifdef HTTP
     workflowhttp::Engine engine(9002);
     engine.Use(Access()).Use(Recovery());
     engine.GET("/gettest", &GET_TEST);
@@ -108,7 +118,20 @@ int main(int argc, char *argv[])
 	engine.GET("/Z*", &GET_TEST);
 	engine.GET("/gettest/:id", &GET_TEST);
     
-    if(engine.Start()) {
+    if(engine.Start())
+#endif 
+
+#ifdef HTTPS
+    workflowhttp::Engine engine;
+    engine.Use(Access()).Use(Recovery());
+    engine.GET("/gettest", &GET_TEST);
+	engine.POST("/gettest", &GET_TEST);
+	engine.GET("/Z*", &GET_TEST);
+	engine.GET("/gettest/:id", &GET_TEST);
+    
+    if(engine.StartTLS("0.0.0.0", 9002, "server.crt", "server.key"))
+#endif
+	{
 #ifndef _WIN32
 		pause();
 #else

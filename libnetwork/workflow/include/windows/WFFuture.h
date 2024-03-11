@@ -22,6 +22,7 @@
 #include <future>
 #include <chrono>
 #include <utility>
+#include "CommScheduler.h"
 #include "WFGlobal.h"
 
 template<typename RES>
@@ -87,14 +88,9 @@ void WFFuture<RES>::wait() const
 {
 	if (this->future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
-		bool in_handler = WFGlobal::get_scheduler()->is_handler_thread();
-
-		if (in_handler)
-			WFGlobal::sync_operation_begin();
-
+		int cookie = WFGlobal::sync_operation_begin();
 		this->future.wait();
-		if (in_handler)
-			WFGlobal::sync_operation_end();
+		WFGlobal::sync_operation_end(cookie);
 	}
 }
 
@@ -106,14 +102,9 @@ std::future_status WFFuture<RES>::wait_for(const std::chrono::duration<REP, PERI
 
 	if (this->future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
-		bool in_handler = WFGlobal::get_scheduler()->is_handler_thread();
-
-		if (in_handler)
-			WFGlobal::sync_operation_begin();
-
+		int cookie = WFGlobal::sync_operation_begin();
 		status = this->future.wait_for(time_duration);
-		if (in_handler)
-			WFGlobal::sync_operation_end();
+		WFGlobal::sync_operation_end(cookie);
 	}
 
 	return status;
@@ -127,14 +118,9 @@ std::future_status WFFuture<RES>::wait_until(const std::chrono::time_point<CLOCK
 
 	if (this->future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 	{
-		bool in_handler = WFGlobal::get_scheduler()->is_handler_thread();
-
-		if (in_handler)
-			WFGlobal::sync_operation_begin();
-
+		int cookie = WFGlobal::sync_operation_begin();
 		status = this->future.wait_until(timeout_time);
-		if (in_handler)
-			WFGlobal::sync_operation_end();
+		WFGlobal::sync_operation_end(cookie);
 	}
 
 	return status;
@@ -160,7 +146,7 @@ public:
 
 	WFFuture<void> get_future()
 	{
-		return WFFuture<void>(std::move(this->promise.get_future()));
+		return WFFuture<void>(this->promise.get_future());
 	}
 
 	void set_value() { this->promise.set_value(); }

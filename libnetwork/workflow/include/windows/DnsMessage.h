@@ -26,7 +26,6 @@
 
 #include <string.h>
 #include <string>
-#include <atomic>
 #include "ProtocolMessage.h"
 #include "dns_parser.h"
 
@@ -145,13 +144,7 @@ public:
 	{
 		parser->question.qclass = qclass;
 	}
-	void set_question_name(const std::string& name)
-	{
-		char *pname = parser->question.qname;
-		if (pname != NULL)
-			free(pname);
-		parser->question.qname = strdup(name.c_str());
-	}
+	void set_question_name(const std::string& name);
 
 	// Inner use only
 	bool is_single_packet() const
@@ -198,13 +191,8 @@ private:
 
 class DnsRequest : public DnsMessage
 {
-	static std::atomic<uint16_t> req_id_;
 public:
-	DnsRequest()
-	{
-		dns_parser_set_id(req_id_++, this->parser);
-	}
-
+	DnsRequest() = default;
 	DnsRequest(DnsRequest&& req) = default;
 	DnsRequest& operator = (DnsRequest&& req) = default;
 
