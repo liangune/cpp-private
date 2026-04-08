@@ -72,32 +72,6 @@ void Router::Any(const std::string& relativePath, HandlerFunc handler) {
 	Handle(MethodTrace, relativePath, handler);
 }
 
-HandlerFunc Router::GetHandler(const std::string& path, HTTPHandlerFuncVec &handers) {
-    for(auto &node : handers) {
-        if(node->nType == workflowhttp::NodeTypeStatic) {
-            if(path == node->path) {
-                return node->handler;
-            }
-        } else if(node->nType == workflowhttp::NodeTypeParam) {
-            if(path.size() >= node->path.size()) {
-                std::string prefix(path.c_str(), node->path.size());
-                if(node->path == prefix) {
-                    return node->handler;
-                }
-            }
-        } else {
-            if(path.size() >= node->path.size()) {
-                std::string prefix(path.c_str(), node->path.size());
-                if(node->path == prefix) {
-                    return node->handler;
-                }
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 bool Router::Strendswith(const char* str, const char* end) {
     if (str == NULL || end == NULL) {
         return false;

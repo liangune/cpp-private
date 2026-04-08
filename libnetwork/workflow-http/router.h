@@ -7,8 +7,6 @@
 
 namespace workflowhttp {
 
-//using HTTPHandlerFuncMap = std::map<std::string/*The uri*/, std::shared_ptr<RouterNode>>;
-//using HTTPMethodHandlerFuncMap = std::map<std::string/*The method*/, HTTPHandlerFuncMap>;
 using HTTPHandlerFuncVec = std::vector<std::shared_ptr<RouterNode>>;
 using HTTPMethodHandlerFuncMap = std::map<std::string/*The method*/, HTTPHandlerFuncVec>;
 
@@ -53,10 +51,9 @@ public:
     void OPTIONS(const std::string& relativePath , HandlerFunc handler);
     void HEAD(const std::string& relativePath , HandlerFunc handler);
     void Any(const std::string& relativePath, HandlerFunc handler);
-
-    // GetHandler is a simple matching function, instead of GetRouterNode
-    HandlerFunc GetHandler(const std::string& path, HTTPHandlerFuncVec &handers);
+    
     // RESTful API
+    // GetRouterNode is a matching handler function
     RouterNode* GetRouterNode(const std::string& path, HTTPHandlerFuncVec &handers, Params &params);
 
 private:

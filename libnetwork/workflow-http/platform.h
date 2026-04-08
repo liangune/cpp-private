@@ -145,10 +145,10 @@
     #define strcasecmp  stricmp
     #define strncasecmp strnicmp
 #else
-    typedef int                 BOOL;
-    typedef unsigned char       BYTE;
-    typedef unsigned short      WORD;
-    typedef void*               HANDLE;
+    //typedef int                 BOOL;
+    //typedef unsigned char       BYTE;
+    //typedef unsigned short      WORD;
+    //typedef void*               HANDLE;
     #include <strings.h>
     #define stricmp     strcasecmp
     #define strnicmp    strncasecmp

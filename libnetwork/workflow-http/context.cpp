@@ -2,6 +2,7 @@
 #include "workflow/RWLock.h"
 #include "workflow/WFTaskFactory.h"
 #include "workflow/HttpMessage.h"
+#include "multipart.h"
 
 namespace workflowhttp {
 
@@ -273,5 +274,63 @@ void Context::SetCookie(const std::string &name, const std::string &value, int m
     */
 }
 
+// ContentType returns the Content-Type header of the request.
+std::string Context::ContentType() {
+	return GetHeader("Content-Type");
+}
+
+std::string Context::GetPostForm(const std::string &key) {
+    std::vector<std::string> values;
+    if(GetPostFormArray(key, values)) {
+        return values[0];
+    }
+    return "";
+}
+
+bool Context::GetPostFormArray(const std::string &key, std::vector<std::string> &values) {
+    ParseForm();
+    auto it = postForm.find(key);
+    if(it != postForm.end() && it->second.size() > 0) {
+        auto &val = it->second;
+        values.assign(val.begin(), val.end());
+        return true;
+    }
+
+    return false;
+}
+
+void Context::ParseForm() {
+    if (postForm.empty() && ContentType() == MIMEPOSTForm) {
+        std::string body = GetBodyString();
+        auto q = URIParser::split_query_strict(body);
+        postForm.swap(q);
+    }
+}
+
+const MultiPartForm& Context::MultipartForm() {
+    ParseMultipartForm();
+    return multipartForm;
+}
+
+std::string Context::GetMultipartForm(const char* name, const std::string& defvalue) {
+    ParseMultipartForm();
+    auto iter = multipartForm.find(name);
+    return iter == multipartForm.end() ? defvalue : iter->second.content;
+}
+
+void Context::ParseMultipartForm() {
+    std::string sContentType = ContentType();
+    if (multipartForm.empty() && StringUtils::startswith(sContentType, MIMEMultipartPOSTForm)) {
+        std::size_t pos = sContentType.find("boundary=");
+        std::string boundary = sContentType.substr(pos + 9);
+        if (boundary == "") {
+            return;
+        }
+        std::string body = GetBodyString();
+        if (Multipart::ParseMultipart(body, multipartForm, boundary.c_str()) < 0) {
+            Error("HTTP request parse multipart/form-data failed.");
+        }
+    }
+}
 
 }

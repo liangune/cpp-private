@@ -13,6 +13,7 @@
 #include "error.h"
 #include "workflow/RWLock.h"
 #include "httpCookie.h"
+#include "multipart.h"
 
 namespace workflowhttp {
 class Context;
@@ -96,7 +97,19 @@ private:
 
     // the HTTP response code
     int statusCode;
-    
+
+	// postForm contains the parsed form data from PATCH, POST
+	// or PUT body parameters.
+	//
+	// This field is only available after ParseForm is called.
+	// The HTTP client ignores PostForm and uses Body instead.
+	URLValues postForm;  // application/x-www-form-urlencoded
+
+	// multipartForm is the parsed multipart form, including file uploads.
+	// This field is only available after ParseMultipartForm is called.
+	// The HTTP client ignores MultipartForm and uses Body instead.
+	MultiPartForm multipartForm; // multipart/form-data
+
 public:
     Context();
     Context(protocol::HttpRequest *req, protocol::HttpResponse *resp);
@@ -193,6 +206,27 @@ public:
 
     void SetCookie(const HttpCookie& cookie);
     void SetCookie(const std::string &name, const std::string &value, int maxAge, const std::string& path, const std::string &domain, bool secure, bool httpOnly);
+
+    // ContentType returns the Content-Type header of the request.
+    std::string ContentType();
+
+    // GetPostForm returns the specified key from a POST urlencoded form
+    // when it exists, otherwise it returns an empty string `("")`.
+    std::string GetPostForm(const std::string &key);
+
+    // GetPostFormArray returns a slice of strings for a given form key, plus
+    // a boolean value whether at least one value exists for the given key.
+    bool GetPostFormArray(const std::string &key, std::vector<std::string> &values);
+
+    // ParseForm parses a request body as application/x-www-form-urlencoded.
+    void ParseForm();
+
+    // Content-Type: multipart/form-data
+    const MultiPartForm& MultipartForm();
+    std::string GetMultipartForm(const char* name, const std::string& defvalue = "");
+
+    // ParseMultipartForm parses a request body as multipart/form-data.
+    void ParseMultipartForm();
 };
 
 }
