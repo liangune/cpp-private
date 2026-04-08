@@ -62,4 +62,13 @@ typedef struct {
 }TwoVoidPtrParam;
 /*void* param*/
 
+// 系统不可用最大周期数（如一周期为一分钟，则可容纳最长不可用时间为3分钟）
+#define SYSTEM_LOSE_AVAILABILITY_ROUND 2
+// 接入层检测客户端keepalive的时间间隔
+#define GATEWAY_CHECK_CLIENT_KEEPALIVE 150
+// 客户端连接keepalive超时事件
+#define BEV_EVENT_CONNECTION_KEEPALIVE_TIMEOUT 0x100
+// 强制关闭客户端连接
+#define BEV_EVENT_FORCE_CLOSE_CONNECTION 0x200
+
 #endif // !_TCP_TYPEDEF_H_

@@ -7,6 +7,7 @@
 #include "worker.h"
 #include "tcpMaster.h"
 #include "event2/bufferevent.h"
+#include "event2/bufferevent_struct.h"
 #include "event2/thread.h"
 
 #ifdef _MSC_VER
@@ -45,12 +46,18 @@ void CWorker::Destroy()
 #ifdef _MSC_VER
 	closesocket(m_pipeNotify.nReceiveFd);
 	closesocket(m_pipeNotify.nSendFd);
+	closesocket(m_pipeCheckClientKeepalive.nReceiveFd);
+	closesocket(m_pipeCheckClientKeepalive.nSendFd);
 #else
 	close(m_pipeNotify.nReceiveFd);
 	close(m_pipeNotify.nSendFd);
+	close(m_pipeCheckClientKeepalive.nReceiveFd);
+	close(m_pipeCheckClientKeepalive.nSendFd);
 #endif
 	m_pipeNotify.nReceiveFd = 0;
 	m_pipeNotify.nSendFd = 0;
+	m_pipeCheckClientKeepalive.nReceiveFd = 0;
+	m_pipeCheckClientKeepalive.nSendFd = 0;
 }
 
 
@@ -196,7 +203,10 @@ void CWorker::ReadPipeCb(evutil_socket_t fd, short event, void* arg)
 				continue;
 			}
 			
+			pWorker->m_rwLock.wlock();
 			pWorker->m_connMap[pConnInfo->sfd] = pConnInfo;
+			pWorker->m_rwLock.unlock();
+			pConnInfo->pConnection->OnConnect();
 		}
 	}
 
@@ -234,7 +244,7 @@ CONN_INFO* CWorker::InitNewConn(CONN_INFO *pConnInfo, CWorker* pWorker)
 	
 	/*设置读写对应的回调函数*/
 
-	bufferevent_setcb(pClientTcpEvent, ClientTcpReadCb, ClientTcpWriteCb, ClientTcpErrorCb, (void*)pArg);
+	bufferevent_setcb(pClientTcpEvent, ClientTcpReadCb, ClientTcpWriteCb, ClientTcpEventCb, (void*)pArg);
 
 	/* 利用客户端心跳超时机制处理半开连接 */
 	//#ifdef USE_TIMEOUT
@@ -287,43 +297,122 @@ void CWorker::ClientTcpWriteCb(struct bufferevent *bev, void *arg)
 # endif
 }
 
-void CWorker::ClientTcpErrorCb(struct bufferevent *bev, short event, void *arg)
+void CWorker::ClientTcpEventCb(struct bufferevent *bev, short event, void *arg)
 {
 	WorkerAndConnInfo* p = static_cast<WorkerAndConnInfo*>(arg);
 	
+	bool isClose = true;
+	if (event == BEV_EVENT_CONNECTED) {
+		//dzlog_debug("ClientTcpEventCb connected.");
+		isClose = false;
+	} else if (event & BEV_EVENT_TIMEOUT) {
+		dzlog_error("CTcpWorker::ClientTcpEventCb:TimeOut.");
 # ifdef IPARSER_INSTANCE
-	if( p->pConnInfo && p->pConnInfo->pConnection )
-	{
-		TwoVoidPtrParam param;
-		param.p1 = (void*)bev;
-		param.p2 = (void*)(p->pWorker);
-		p->pConnInfo->pConnection->OnError((void*)(&param));
-	}
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnError((void*)(&param));
+		}
 # endif
-
-	if (event & BEV_EVENT_TIMEOUT)
-	{
-		dzlog_warn("CTcpWorker::ClientTcpErrorCb:TimeOut.");
-	}
-	else if (event & BEV_EVENT_EOF)
-	{
+	} else if (event & BEV_EVENT_EOF) {
         if (p->pConnInfo)
-		    dzlog_debug("ClientTcpErrorCb close(%d)", p->pConnInfo->sfd);
+		    dzlog_debug("ClientTcpEventCb close(%d)", p->pConnInfo->sfd);
         else
-            dzlog_debug("ClientTcpErrorCb close(-1)");
+            dzlog_debug("ClientTcpEventCb close(-1)");
+
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnClose((void*)(&param));
+		}
+# endif
 	}
-	else if (event & BEV_EVENT_ERROR)
-	{
+	/* 
+	else if (event & BEV_EVENT_READING) {
+		//dzlog_error("ClientTcpEventCb reading error.");
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnError((void*)(&param));
+		}
+# endif
+	} else if (event & BEV_EVENT_WRITING) {
+		//dzlog_error("ClientTcpEventCb writing error.");
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnError((void*)(&param));
+		}
+# endif
+	}
+	*/ 
+	else if (event & BEV_EVENT_ERROR) {
 		int32_t errorCode = EVUTIL_SOCKET_ERROR();
-		dzlog_warn("CTcpWorker::ClientTcpErrorCb:some other error: %s", evutil_socket_error_to_string(errorCode));
+		dzlog_error("CTcpWorker::ClientTcpEventCb:some other error: %s", evutil_socket_error_to_string(errorCode));
+
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnError((void*)(&param));
+		}
+# endif
+	} else if (event == BEV_EVENT_CONNECTION_KEEPALIVE_TIMEOUT) {
+        if (p->pConnInfo)
+		    dzlog_debug("ClientTcpEventCb keepalive timeout(%d)", p->pConnInfo->sfd);
+        else
+            dzlog_debug("ClientTcpEventCb keepalive timeout(-1)");
+
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnClose((void*)(&param));
+		}
+# endif		
+	} else if (event == BEV_EVENT_FORCE_CLOSE_CONNECTION) {
+        if (p->pConnInfo)
+		    dzlog_debug("ClientTcpEventCb force close(%d)", p->pConnInfo->sfd);
+        else
+            dzlog_debug("ClientTcpEventCb force close(-1)");
+
+# ifdef IPARSER_INSTANCE
+		if( p->pConnInfo && p->pConnInfo->pConnection )
+		{
+			TwoVoidPtrParam param;
+			param.p1 = (void*)bev;
+			param.p2 = (void*)(p->pWorker);
+			p->pConnInfo->pConnection->OnClose((void*)(&param));
+		}
+# endif		
 	}
 
-	CloseConn(p, bev);
+	if (isClose) {
+		CloseConn(p, bev);	
+	}
 }
 
 void CWorker::CloseConn(WorkerAndConnInfo* p, struct bufferevent *bev)
 {
+	p->pWorker->m_rwLock.wlock();
 	p->pWorker->m_connMap.erase(p->pConnInfo->sfd);
+	p->pWorker->m_rwLock.unlock();
+	
 	CloseConn(p->pConnInfo, bev);
 	p->pConnInfo = NULL;
 	delete p;
@@ -364,17 +453,19 @@ void CWorker::CloseConn(CONN_INFO* pConnInfo, struct bufferevent *bev)
 void CWorker::ClientTcpErrorCbCaller(struct bufferevent *bev, short event)
 {
     WorkerAndConnInfo* pArg = NULL;
-    //bufferevent_getcb(bev, NULL, NULL, NULL, (void**)&pArg);
-    ClientTcpErrorCb(bev, event, pArg);
+	pArg = (WorkerAndConnInfo*)(bev->cbarg);
+    ClientTcpEventCb(bev, event, pArg);
     bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
 }
 
 int32_t CWorker::Send(int32_t nFd, char* pBuffer, int32_t nLen)
 {
+	m_rwLock.rlock();
 	Map_ConnInfo::iterator itFind = m_connMap.find(nFd);
+	m_rwLock.unlock();
 	if (itFind == m_connMap.end())
 	{
-		dzlog_error("Can not find fd=%d", nFd);
+		dzlog_error("CWorker::Send can not find fd=%d", nFd);
 		return -1;
 	}
 
@@ -383,25 +474,86 @@ int32_t CWorker::Send(int32_t nFd, char* pBuffer, int32_t nLen)
 
 bool CWorker::ForceCloseConn(const int nClientFd)
 {
+	m_rwLock.rlock();
 	Map_ConnInfo::iterator itFind = m_connMap.find(nClientFd);
+	m_rwLock.unlock();
 	if (itFind != m_connMap.end())
 	{
 		CONN_INFO *pConnInfo = itFind->second;
 		if (pConnInfo)
 		{
-			dzlog_error("Force close fd=%d\n", itFind->second->sfd);
-			ClientTcpErrorCbCaller(itFind->second->pClientTcpEvent, 0);
+			dzlog_error("CWorker::ForceCloseConn fd=%d.", itFind->second->sfd);
+			ClientTcpErrorCbCaller(itFind->second->pClientTcpEvent, BEV_EVENT_FORCE_CLOSE_CONNECTION);
 			return true;
 		}
 		else
 		{
-			dzlog_error("ptr null where fd=%d\n", nClientFd);
+			dzlog_error("CWorker::ForceCloseConn is null, fd=%d.", nClientFd);
 			return false;
 		}
 	}
 	else
 	{
-		dzlog_error("Can not find fd=%d\n", nClientFd);
+		dzlog_error("CWorker::ForceCloseConn can not find fd=%d.", nClientFd);
 		return false;
+	}
+}
+
+bool CWorker::SetClientKeepaliveTimeout(bool isCheckKeepalive, uint32_t nKeepaliveSec)
+{
+	m_isCheckKeepalive = isCheckKeepalive;
+	m_nkeepaliveTimeout = nKeepaliveSec;
+	if (m_isCheckKeepalive) {
+		/* 检测客户端keepalive */
+		if (false == SetupPipe(m_pipeCheckClientKeepalive, CheckClientKeepaliveCb) )
+			return false;
+	}
+	
+	return true;
+}
+
+void CWorker::CheckClientKeepaliveCb(evutil_socket_t fd, short event, void *arg)
+{
+	CWorker *pWorker = static_cast<CWorker *>(arg);
+#ifdef _MSC_VER
+	char buf[1];
+	if (recv(fd, buf, 1, 0) == SOCKET_ERROR || buf[0] != PIPE_NOTIFY_CHR) {
+		dzlog_error("Can't read from libevent socket pair.");
+		return;
+	}
+#else
+	char buf[1];
+	if (read(fd, buf, 1) != 1 || buf[0] != PIPE_NOTIFY_CHR)
+	{
+		dzlog_error("Can't read from libevent pipe.");
+		return;
+	}
+#endif
+
+	// keepalive timeout
+	int64_t nNow = time(NULL);
+	Map_ConnInfo mapTimeout;
+	
+	pWorker->m_rwLock.rlock();
+	for (Map_ConnInfo::iterator it = pWorker->m_connMap.begin(); it != pWorker->m_connMap.end(); ++it)
+	{
+		CONN_INFO *p = it->second;
+		if (!p)
+		{
+			dzlog_error("CWorker::CheckClientKeepalive connection is null.");
+			continue;
+		}
+
+		if ((nNow - p->nLastKeepalive) > pWorker->m_nkeepaliveTimeout)
+		{
+			mapTimeout[p->sfd] = p;
+		}
+	}
+	pWorker->m_rwLock.unlock();
+
+	// 关闭keepalvie超时的连接
+	for (Map_ConnInfo::iterator it = mapTimeout.begin(); it != mapTimeout.end(); ++it)
+	{
+		ClientTcpErrorCbCaller(it->second->pClientTcpEvent, BEV_EVENT_CONNECTION_KEEPALIVE_TIMEOUT);
 	}
 }

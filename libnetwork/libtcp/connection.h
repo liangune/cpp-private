@@ -26,6 +26,8 @@ public:
 	virtual void OnRead(void *param) = 0;
 	virtual void OnWrite(void *param) = 0;
 	virtual void OnError(void *param) = 0;
+	virtual void OnConnect(void *param) = 0;
+	virtual void OnClose(void *param) = 0;
 	virtual size_t GetBuffTotalLen() = 0;
 	virtual int32_t BuffCopy(char *buff, uint32_t nNeedLen) = 0;
 	virtual int32_t Recv(char *buff, int32_t nRecvLen) = 0;
@@ -43,6 +45,8 @@ public:
 	virtual void OnRead(void *param);
 	virtual void OnWrite(void *param);
 	virtual void OnError(void *param);
+	virtual void OnConnect(void *param);
+	virtual void OnClose(void *param);
 
 	int32_t GetFd();
 	std::string GetPeerIp();
@@ -52,7 +56,9 @@ protected:
 	virtual void OnRecv() {};
 	virtual void OnDealError() {};
 	virtual void OnSend() {};
-
+	virtual void OnConnect() {};
+	virtual void OnClose() {};
+	
 protected:
 	size_t GetBuffTotalLen();
 
@@ -89,6 +95,11 @@ public:
 	void SetIndex(uint32_t nIndex)
 	{
 		m_nIndex = nIndex;
+	}
+
+	uint32_t GetIndex()
+	{
+		return m_nIndex;
 	}
 
 	void SetAcceptTm(int64_t nTm)

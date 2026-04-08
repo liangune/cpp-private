@@ -13,6 +13,8 @@
 #include "syncList.h"
 #include "connectionFactory.h"
 #include <thread>
+#include "eventTimer.h"
+#include "rwLock.h"
 
 /* 利用客户端心跳超时机制处理半开连接 s */
 //#define USE_TIMEOUT
@@ -35,7 +37,7 @@ typedef struct
 
 public:
 	CWorker();
-	~CWorker();
+	virtual ~CWorker();
 	void Destroy();
 
 	virtual bool Setup();
@@ -54,6 +56,8 @@ public:
 	struct event_base* GetEventBase() { return m_pBase; }
 
 	bool ForceCloseConn(const int nClientFd);
+
+	bool SetClientKeepaliveTimeout(bool isCheckKeepalive, uint32_t nKeepaliveSec);
 protected:
 	bool SetupPipe(PIPE& pp, void (*func)(evutil_socket_t, short, void*));
 	
@@ -64,16 +68,19 @@ protected:
 	
 	static void ClientTcpReadCb(struct bufferevent *bev, void *arg);
 	static void ClientTcpWriteCb(struct bufferevent *bev, void *arg);
-	static void ClientTcpErrorCb(struct bufferevent *bev, short event, void *arg);
+	static void ClientTcpEventCb(struct bufferevent *bev, short event, void *arg);
 	static void ClientTcpErrorCbCaller(struct bufferevent *bev, short event);
 	static void CloseConn(CONN_INFO* pConnInfo, struct bufferevent *bev);
 	static void CloseConn(WorkerAndConnInfo* p, struct bufferevent *bev);
 	
+	static void CheckClientKeepaliveCb(evutil_socket_t fd, short event, void *arg);
+
 protected:
-	std::thread::id            m_threadId;
+	std::thread::id             m_threadId;
 	struct event_base*			m_pBase;
 
 	PIPE						m_pipeNotify;
+	PIPE 						m_pipeCheckClientKeepalive;
 
 	CSyncList<CONN_INFO>	    m_connList;
 	Map_ConnInfo				m_connMap;
@@ -84,7 +91,13 @@ protected:
 	bool m_isUseTimeout;
 	uint32_t m_nKeepaliveSec;
 
+	//定时检查客户端连接keepalive
+	bool m_isCheckKeepalive;
+	uint32_t m_nkeepaliveTimeout;
+
 	uint32_t m_nIndex;
+
+	tcp::RWLock m_rwLock;
 };
 
 #endif //_TCP_WORKER_H_

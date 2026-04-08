@@ -49,6 +49,22 @@ void CConnectionData::OnError(void *param)
 	this->OnDealError();
 }
 
+void CConnectionData::OnConnect(void *param)
+{
+	TwoVoidPtrParam* p = (TwoVoidPtrParam*)param;
+	m_pClientTcpEvent = (bufferevent*)(p->p1);
+	m_pWorker = (CWorker*)(p->p2);
+	this->OnConnect();
+}
+
+void CConnectionData::OnClose(void *param)
+{
+	TwoVoidPtrParam* p = (TwoVoidPtrParam*)param;
+	m_pClientTcpEvent = (bufferevent*)(p->p1);
+	m_pWorker = (CWorker*)(p->p2);
+	this->OnClose();
+}
+
 size_t CConnectionData::GetBuffTotalLen()
 {
 	if(m_pClientTcpEvent)

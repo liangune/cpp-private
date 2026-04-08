@@ -32,11 +32,13 @@
 #include <signal.h>
 #endif
 
-#include <iostream>
+#include <chrono>
 
 CTcpMaster::CTcpMaster() : m_pEventBase(NULL), m_pParserFactory(NULL), m_nThreadCount(0), m_nLastThread(0)
 {
 	m_isUseTimeout = false;
+	m_isCheckKeepalive = false;
+	m_nkeepaliveTimeout = 0; 
 }
 
 CTcpMaster::~CTcpMaster()
@@ -52,6 +54,21 @@ void CTcpMaster::Destroy()
 #ifdef _MSC_VER
     WSACleanup();
 #endif
+
+	for(auto pWorker : m_vecWorker)
+	{
+		delete pWorker;
+	}
+	
+	if (m_pEventBase) {
+		event_base_free(m_pEventBase);
+		m_pEventBase = NULL;
+	}
+
+	if (m_pEventTimer) {
+		delete m_pEventTimer;
+		m_pEventTimer = NULL;
+	}
 }
 
 bool CTcpMaster::CheckLibeventVersion()
@@ -140,8 +157,13 @@ bool CTcpMaster::InitMasterThread(IConnectionFactory* pParserFactory,\
 		return false;
 	}
 
-	// worker thread, 创建worker线程，用来处理来自客户端的连接
-
+	// timer
+	if (m_isCheckKeepalive) {
+		m_pEventTimer = new CEventTimer();
+		m_pEventTimer->Setup();
+	}
+	
+	/* worker thread, 创建worker线程，用来处理来自客户端的连接 */
 	if(false==InitWorkerThread(nWorkerCount))
 	{
 		dzlog_error("InitWorkerThread error");
@@ -194,6 +216,14 @@ bool CTcpMaster::InitWorkerThread(int32_t nThreadCount)
 		{
 			dzlog_error("SetupThread error.");
 			return false;
+		}
+
+		if (!p->SetClientKeepaliveTimeout(m_isCheckKeepalive, m_nkeepaliveTimeout)) {
+			dzlog_error("SetClientKeepaliveTimeout error.");
+			return false;
+		}
+		if (m_pEventTimer && m_isCheckKeepalive) {
+			m_pEventTimer->AddEvent(p->m_pipeCheckClientKeepalive, m_nkeepaliveTimeout);
 		}
 		
 		p->m_pParserFactory = m_pParserFactory;
@@ -277,9 +307,9 @@ bool CTcpMaster::DispatchSfdToWorker(evutil_socket_t sfd)
 	pConnInfo->pConnection	   = NULL;
 	pConnInfo->pClientTcpEvent = NULL;
 	//tm
-	//int64_t nMS = GetNowMS();
-	//pConnInfo->nLastKeepalive = nMS/1000;
-	//pConnInfo->nAcceptTm = nMS;
+	int64_t nMS = GetNowMS();
+	pConnInfo->nLastKeepalive = nMS/1000;
+	pConnInfo->nAcceptTm = nMS;
 
 	pWorker->m_connList.AddTail(pConnInfo);
 
@@ -307,6 +337,9 @@ bool CTcpMaster::DispatchSfdToWorker(evutil_socket_t sfd)
 void CTcpMaster::Start()
 {
 	dzlog_info("<<<<<<<<<<<<<<< Tcp Server start >>>>>>>>>>>>");
+	if(m_pEventTimer && m_isCheckKeepalive) {
+		m_pEventTimer->Start();
+	}
 	int32_t iRet = event_base_dispatch(m_acceptorClient.GetEventBase());
 	if( iRet == -1)
 	{
@@ -323,12 +356,40 @@ void CTcpMaster::Start()
 	}
 }
 
-//毫秒
 int64_t CTcpMaster::GetNowMS()
 {
-	//timeval t;
-	//gettimeofday(&t, 0);
+	auto now = std::chrono::system_clock::now();
 
-	//return (t.tv_sec * 1000000ULL + t.tv_usec) / 1000;
-	return 0;
+	int64_t milliseconds = 0;
+	milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+	return milliseconds;
+}
+
+void CTcpMaster::SetClientKeepaliveTimeout(bool isCheckKeepalive, uint32_t nKeepaliveSec)
+{
+	m_isCheckKeepalive = isCheckKeepalive;
+	m_nkeepaliveTimeout = nKeepaliveSec;
+}
+
+void CTcpMaster::Send(const uint32_t nWorkerIndex, const int32_t nFd, char* pBuffer, int32_t nLen)
+{
+	for (Vec_Worker::iterator it = m_vecWorker.begin(); it != m_vecWorker.end(); ++it)
+    {
+        CWorker *pWorker = (CWorker *)(*it);
+        if (!pWorker)
+        {
+            dzlog_error("worker is nullptr, worker index: %d", nWorkerIndex);
+            continue;
+        }
+
+        uint32_t nIndex = pWorker->GetIndex();
+        if (nIndex != nWorkerIndex)
+            continue;
+		
+		if (pWorker->Send(nFd, pBuffer, nLen) == -1)
+		{
+			dzlog_error("SendToClient:Send failed.");
+		}
+	}
 }

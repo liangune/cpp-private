@@ -18,8 +18,10 @@ if(MSVC)
     endif()
 elseif(UNIX)
     set(PLATFORM linux)
-    if(CMAKE_SIZEOF_VOID_P)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(ARCHITECTURE x64)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        set(ARCHITECTURE arm64)
     else()
         set(ARCHITECTURE x86)
     endif()
@@ -130,8 +132,8 @@ elseif(UNIX)
 
     # 静态库
     set(LINK_ARCHIVES
-        ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent.a 
-        ${CMAKE_CURRENT_SOURCE_DIR}/../libevent/lib/libevent_core.a
+        ${LINK_ARCHIVES_DIR}/libnetwork/libevent/libevent.a 
+        ${LINK_ARCHIVES_DIR}/libnetwork/libevent/libevent_core.a
         ${LINK_ARCHIVES_DIR}/zlog/libzlog.a
     )
 endif()

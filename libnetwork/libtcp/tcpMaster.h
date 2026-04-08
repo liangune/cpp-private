@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <atomic>
 #include <vector>
+#include "eventTimer.h"
 
 class IConnectionFactory;
 class CWorker;
@@ -41,6 +42,10 @@ public:
 
 	int64_t GetNowMS();
 
+	void SetClientKeepaliveTimeout(bool isCheckKeepalive, uint32_t nKeepaliveSec = SYSTEM_LOSE_AVAILABILITY_ROUND * GATEWAY_CHECK_CLIENT_KEEPALIVE);
+	
+	void Send(const uint32_t nWorkerIndex, const int32_t nFd, char* pBuffer, int32_t nLen);
+
 protected:
 	bool CheckLibeventVersion();
 	void Destroy();
@@ -64,5 +69,10 @@ public:
 	//超时关闭连接
 	bool m_isUseTimeout;
 	uint32_t m_nKeepaliveSec;
+
+	//定时检查客户端连接keepalive
+	bool m_isCheckKeepalive;
+	uint32_t m_nkeepaliveTimeout;
+	CEventTimer *m_pEventTimer;
 };
 #endif /* _TCP_MASTER_H_ */
